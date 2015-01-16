@@ -37,7 +37,7 @@ module.exports = new function()
       return {
         raw : "Raw",
       };
-    }
+    };
   
     this.generateStatsList = function (currList)
     {
@@ -58,7 +58,23 @@ module.exports = new function()
         
         return statsList;
     
-    }
+    };
+    
+    this.err = function(err)
+    {
+      if(err)
+      {
+        throw err;
+      }
+    };
+    
+    this.logErr = function(err)
+    {
+      if(err)
+      {
+        console.error(err);
+      }
+    };
 }
 
 /*
