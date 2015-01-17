@@ -2,10 +2,11 @@ var tools = require("tools");
 var Server = require("ws").Server;
 var cluster = require("cluster");
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8000;
 const WORKER_COUNT = 4;
 
-var server = new Server({port:PORT});
+var id = 0;
+
 
 if (cluster.isMaster) {
     console.log("Splitter service: awaiting connection on "+PORT);
@@ -15,20 +16,31 @@ if (cluster.isMaster) {
     }
 }
 
-var Socket = null;
+
 if (cluster.isWorker) {
     
-    server.on('connection', hConnection);
+    var server = new Server({port:PORT});
+  
+    var workerId = ++id;
+    
+    var Socket = null;
+    try
+    {
+        server.on('connection', 
+            function (socket)
+            {
+                console.log(workerId+" Incoming connection.."+socket);
+                Socket = socket;
+                Socket.on('message',
+                    function (message)
+                    {
+                        console.log(message);
+                    });
+            });
+    }catch(e)
+    {
+        console.log("Error opening socket connection > "+e);
+    }
 }
 
-function hConnection(socket)
-{
-    console.log("Incoming connection.."+socket);
-    Socket = socket;
-    Socket.on('message', hMessage);
-}
 
-function hMessage(message)
-{
-    console.log(message);
-}

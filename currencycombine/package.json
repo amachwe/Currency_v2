@@ -1,0 +1,7 @@
+{
+  "name": "currencycombine",
+  "version": "0.1",
+  "description": "Currency data combiner.",
+  "main": "./currencycombine.js",
+  
+}
