@@ -20,7 +20,7 @@ const KEY_DISCLAIMER="disclaimer";
 const KEY_LICENSE="license";
 
 var http=require('http');
-var combine=require('./currencycombine');
+
 var mongoClient=require('mongodb').MongoClient;
 
 var badResponseCount=0;
@@ -62,7 +62,7 @@ function loadCurrencyData()
                                                    if(err) throw err;
 
                                                    console.log("Done.");
-                                                   combine.process(MONGO_DB_URL,null,jsonData._id);
+                                                   
                                                  });
                                 }
                                 catch(e)
