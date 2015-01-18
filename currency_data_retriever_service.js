@@ -4,7 +4,7 @@ Service: (openexchangerates.org)
 */
 
 const MONGO_COLLECTION_NAME="Raw";
-const MONGO_DB_URL="mongodb://localhost:27017/Currency";
+const MONGO_DB_URL="mongodb://localhost:27017/Currency_v2";
 
 const REQUEST_OPTIONS =
       {
