@@ -10,6 +10,7 @@ var combine = require("currencycombine");
 var MongoDB = require("mongodb");
 var events = require("events");
 var tools = require("tools");
+var fork = require("child_process").fork;
 
 
 
@@ -225,7 +226,7 @@ function normalise(){
                 {
                         console.log("Norm Collection dropped.");
                         
-                        console.log("Processing docs: ",statsList["USD"]["GBP"].count);
+                        console.log("Processing docs: ",statsList["USD"]["GBP"].count*currList.length);
                         for (var i = 0; i<currList.length;i++) {
                             
                                 normaliseOne(completed,currList[i]);
@@ -290,7 +291,7 @@ function normaliseOne(completed,curr)
                                                               console.log("Count in statistics less than data count, possible data corruption. Please resync from Raw data again");  
                                                             }
                                                             if (completed.length == currList.length) {
-                                                                
+                                                                aggregate();
                                                             }
                                                        });
                                         
@@ -315,10 +316,9 @@ function aggregate()
         list.push(currList[i]);
         if (list.length>=batchSize) {
             batchCount++;
-            console.log(batchCount,list);
             activeTokens.push(batchCount);
             
-            var cp = fork("./aggregate",[list,true,SRC,TGT,batchCount]);
+            var cp = fork("./aggregate",[JSON.stringify(list),true,SRC,TGT,batchCount]);
             
             cp.on('exit', function()
                   {
