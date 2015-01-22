@@ -12,18 +12,20 @@ if (timerInterval<0) {
 }
 
 if (timerInterval != TIMER_DISABLED) {
+    
+    console.log((new Date())+ " Service running with interval (mins): "+timerInterval);
     setInterval(runTask,timerInterval*60*1000);
 }
 else
 {
-    console.log("TIMER has been disabled. Nothing to do therefore exiting.");
+    console.log("Timer has been disabled. Nothing to do therefore exiting.");
 }
 
 
 function runTask() {
     
     if (TASK_RUNNING) {
-        console.log("Task is running already.");
+        console.log((new Date())+ " Task is already running.");
         return;
     }
     
