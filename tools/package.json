@@ -1,0 +1,6 @@
+{
+    "name":"tools",
+    "version":"0.1",
+    "description":"Helper tools for Projects",
+    "main":"./tools.js"
+}
