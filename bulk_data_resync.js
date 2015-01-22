@@ -2,6 +2,7 @@ const MONGO_DB_HOST="localhost";
 const CURR_DB_NAME = "Currency_v2";
 const AGG_DB_NAME = "CurrencyAggregate_v2";
 const MONGO_DB_PORT = 27017;
+const TIMER_DISABLED = 0;
 
 const START_TIME = new Date().getTime();
 
@@ -26,6 +27,8 @@ var mongoDbHost = tools.argv(process.argv[2],MONGO_DB_HOST);
 var mongoDbPort = tools.argv(process.argv[3],MONGO_DB_PORT);
 var currDbName = tools.argv(process.argv[4],CURR_DB_NAME);
 var aggDbName = tools.argv(process.argv[5],AGG_DB_NAME);
+
+
 
 
 var MongoClient = MongoDB.MongoClient;
