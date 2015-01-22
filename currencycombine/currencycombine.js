@@ -19,6 +19,32 @@ module.exports = new function()
         return codeList;
       
     };
+    
+     this.getStatsCodeList= function ()
+    {
+      
+        var codeList = [];
+        for(var key in currency_list)
+        {
+          codeList.push("STATS_"+key);
+        }
+        
+        return codeList;
+      
+    };
+    
+    this.getNormCodeList = function ()
+    {
+      
+        var codeList = [];
+        for(var key in currency_list)
+        {
+          codeList.push("NORM_"+key);
+        }
+        
+        return codeList;
+      
+    };
   
     this.argv = function (arg,defVal)
     {
@@ -36,6 +62,8 @@ module.exports = new function()
     {
       return {
         raw : "Raw",
+	stats : "Stats"
+	
       };
     };
   
@@ -45,7 +73,7 @@ module.exports = new function()
         for(var i=0;i<currList.length;i++)
         {
             var curr=currList[i];
-            statsList[curr] = {_id:PREFIX_STATS+curr,_base:curr};
+            statsList[curr] = {};
             
             for(var j=0;j<currList.length;j++)
             {

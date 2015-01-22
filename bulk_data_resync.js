@@ -3,16 +3,19 @@ const CURR_DB_NAME = "Currency_v2";
 const AGG_DB_NAME = "CurrencyAggregate_v2";
 const MONGO_DB_PORT = 27017;
 
-
+const START_TIME = new Date().getTime();
 
 var combine = require("currencycombine");
 var MongoDB = require("mongodb");
+var events = require("events");
 
 
 
 
 var currList = combine.getCurrencyCodeList();
+var statsCollList = combine.getStatsCodeList();
 var statsList = combine.generateStatsList(currList);
+var normCollList = combine.getNormCodeList();
 const COLL_NAMES = combine.getCollectionNames();
 
 
@@ -35,92 +38,127 @@ console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName+ "\tAgg Db: "+aggDb
  
 console.log((new Date())+"  Bulk Resync started.. obtaining database links");
 
+function Drop(_db) {
+                        this.db = _db;
+                        events.EventEmitter.call(this);
+                        this.dropAllCurrencies = function (currencyList) {
+                            var count = 0;
+                            var self = this;
+                            
+                            for(var i=0;i<currencyList.length;i++)
+                            {
+                                
+                                currDb.dropCollection(currencyList[i],function(err,result)
+                                                      {
+                                                         hLogErr("DROP",err);
+                                                        count++;
+                                                        if (count == currencyList.length) {
+                                                            console.log("Dropped all");
+                                                            self.emit('dropped-all');
+                                                            
+                                                        }
+                                                      });
+                            }
+                            
+                        };
+                    };
+Drop.prototype = Object.create(events.EventEmitter.prototype);
+
 /*
  * Error Handler
  */
-
 function hErr(err)
 {
     if (err) {
+        
         throw err;
     }
             
 }
 
-function hLogErr(err)
+
+
+function hLogErr(category,err)
 {
     if (err) {
-        console.log(err);
+        console.log(category+"\n"+err);
     }
 }
 
 
-function hEndRaw()
-{
-    console.log("End Raw Table processing.");
-}
+
+
+
 
 function rawProcessor(err,raw)
 {
+    
     console.log("Processing started..");
     hErr(err);
-    raw.count(function(err,count)
-        {
-            console.log("Raw Document counts: "+count);
-            currDb.collection(COLL_NAMES.split,function(err,coSplit)
-            {
-                coSplit.drop(function(err,result)
-                           {
-                            hLogErr(err);
+    var rawDrop = new Drop(currDb);
+    rawDrop.on('dropped-all', function()
+                    {
+                        
+                         
+            
+                            
+            
+                            hLogErr("RAW",err);
                             console.log("Split Collection dropped.");
                             var stream = raw.find().stream();
-                           
+                            
                         
                             stream.on('data',
                                     function(item)
                                     {
                                         
                                         var rates = item["rates"];
-                                        var docSet = {};
-                                        docSet._id = item._id;
+                                       
                                         for (var from in rates) {
                                             var doc = {};
-                                            
+                                            doc._id = item._id;
                                             
                                             
                                             
                                                 for(var to in rates)
                                                 {
                                                     if (from!=to) {
-                                                        var value = rates[to]/rates[from];
+                                                        var value = rates[from]/rates[to];
                                                         doc[to] = value;
                                                         updateStats(from,to,value);
                                                     }
                                                 }
                                             
                                             
-                                            docSet[from] = doc;
-                                         
-                                        }
-                                        coSplit.insert(docSet,{safe:true}, function(err,result)
+                                            currDb.collection(from).insert(doc,{safe:true}, function(err,result)
                                                        {
-                                                            hErr(err);
-                                                            count--;
+                                                            hLogErr(err);
                                                             
-                                                            if (count == 0) {
-                                                                console.log("Records written.");
-                                                                writeStats();
-                                                            }
                                                             
                                                        });
+                                         
+                                        }
                                         
-                                    }).on('end',hEndRaw);
-                           });
-            });
-        }); 
+                                        
+                                    }).on('end',function ()
+                                        {
+                                            
+                                            console.log("End Raw Table processing.");
+                                            writeStats();
+                                            
+                                        });
+                           
+                    }).dropAllCurrencies(currList);
+    
+   
+        
     
     
 }
+
+
+
+
 
        
 function updateStats(from,to,value)
@@ -139,80 +177,124 @@ function updateStats(from,to,value)
     statsList[from][to] = statsDoc;
 }
 
+function writeStat(completed, key, statsDoc)
+{   
+    currDb.collection(COLL_NAMES.stats).insert(statsDoc,{safe:true},function(err,result)
+                                                                          {
+                                                                            hLogErr("STATS",err);
+                                                                            completed.push(1);;
+                                                                            
+                                                                            if (completed.length == currList.length) {
+                                                                                console.log("Stats done...");
+                                                                                normalise();
+                                                                            }
+                                                                           
+                                                                          });
+}
 function writeStats()
 {
-    currDb.collection(COLL_NAMES.stats, function(err, coStats)
-                      {
-                        hErr(err);
-                        coStats.drop(function(err,result)
+    console.log("Starting Stats Writing...");
+    var statsDrop = new Drop(currDb);
+    statsDrop.on('dropped-all',
+                                    function()
                                      {
-                                        hLogErr(err);
-                                        coStats.insert(statsList,{safe:true}, function(err,result)
-                                        {
-                                            console.log("Stats Doc written.");
-                                            hErr(err);
+                                        console.log("Dropped stats...");
+                                        var completed = [];
+                                        for(var key in statsList)
+                                        {  var statsDoc = statsList[key];
+                                            statsDoc._id = "STATS_"+key;
                                             
-                                            currDb.collection(COLL_NAMES.norm,function(err,coNorm)
-                                            {
-                                                coNorm.drop(function(err,result)
-                                                           {
-                                                            hLogErr(err);
-                                                            console.log("Norm Collection dropped.");
-                                                            
-                                                            currDb.collection(COLL_NAMES.split,function(err,coSplit)
-                                                                              {
-                                                                                var stream = coSplit.find().stream();
-                                                                               
-                                                                                var count = statsList["USD"]["GBP"].count;
-                                                                                console.log("Split Document count: "+count);
-                                                                                stream.on('data',
-                                                                                        function(item)
-                                                                                        {
-                                                                                            
-                                                                                            
-                                                                                            var docSet = {};
-                                                                                            
-                                                                                            docSet._id = item._id;
-                                                                                            for (var from in item) {
-                                                                                                if (from !="_id") {
-                                                                                                 
-                                                                                                    var normDoc = {};
-                                                                                                    var baseDoc = item[from];
-                                                                                                    for(var to in baseDoc)
-                                                                                                    {
-                                                                                                       
-                                                                                                        
-                                                                                                       var statsDoc = statsList[from][to];
-                                                                                                       normDoc[to]=baseDoc[to]*1/statsDoc.max;
-                                                                                                       
-                                                                                                    }
-                                                                                                    docSet[from] = normDoc;
-                                                                                                }
-                                                                                             
-                                                                                            }
-                                                                                            
-                                                                                            coNorm.insert(docSet,{safe:true}, function(err,result)
-                                                                                                           {
-                                                                                                                
-                                                                                                                hErr(err);
-                                                                                                                
-                                                                                                                count--;
-                                                                                                                
-                                                                                                                if (count == 0) {
-                                                                                                                    console.log((new Date())+"  Normalised Records written.");
-                                                                                                                  
-                                                                                                                }
-                                                                                                                
-                                                                                                           });
-                                                                                            
-                                                                                        }).on('end',hEndRaw);
-                                                                              });
-                                                           });
-                                            });
-                                        });
-                                     });
+                                           writeStat(completed, key,statsDoc);     
+                                        }
+                                        }).dropAllCurrencies([COLL_NAMES.stats]);
+                             
+
+}
+
+
+function normalise(){
+    console.log("Starting Norm Writing...");
+    var normDrop = new Drop(currDb);
+    var completed = [];
+    normDrop.on('dropped-all',
+                function()
+                {
+                        console.log("Norm Collection dropped.");
                         
-                      });
+                        console.log("Processing docs: ",statsList["USD"]["GBP"].count);
+                        for (var i = 0; i<currList.length;i++) {
+                            
+                                normaliseOne(completed,currList[i]);
+                                
+                        }
+                }).dropAllCurrencies(normCollList);
+}
+
+function normaliseOne(completed,curr)
+{
+    currDb.collection("NORM_"+curr,function(err,coNorm)
+    {
+                                               
+        hLogErr("NORM",err);
+                        
+                           
+        currDb.collection(curr,function(err,coCurr)
+                          {
+                            var stream = coCurr.find().stream();
+                           
+                            
+                            var count = statsList["USD"]["GBP"].count;
+                            
+                            stream.on('data',
+                                    function(item)
+                                    {
+                                    
+                                        
+                                            
+                                             
+                                                var normDoc = {};
+                                                normDoc._id = item._id;
+                                                var statsDoc = statsList[curr];
+                                                
+                                                for(var to in item)
+                                                {
+                                                 if (to!="_id") {
+                                                     
+                                                   
+                                                   normDoc[to]=item[to]*1/statsDoc[to].max;
+                                                 }
+                                                   
+                                                }
+                                                
+                                            
+                                         
+                                        
+                                        
+                                        coNorm.insert(normDoc,{safe:true}, function(err,result)
+                                                       {
+                                                            
+                                                            hErr(err);
+                                                            
+                                                            count--;
+                                                            
+                                                            if (count == 0) {
+                                                              completed.push(curr);  
+                                                              
+                                                            }
+                                                            
+                                                            if (count < 0) {
+                                                              console.log("Count in statistics less than data count, possible data corruption. Please resync from Raw data again");  
+                                                            }
+                                                            if (completed.length == currList.length) {
+                                                                console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
+                                                                process.exit();
+                                                            }
+                                                       });
+                                        
+                                    });
+                          });
+                       
+           });
 }
 var currDb = null;
 var aggDb = null;
@@ -227,5 +309,7 @@ mongoClient.open(function(err,client)
                     
                     currDb.collection(COLL_NAMES.raw,rawProcessor);
                  });
+
+
 
 

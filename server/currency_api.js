@@ -62,7 +62,7 @@ var Stream = require('stream');
 var JSONStream = require('JSONStream');
 
 const currency_list = combine.getCurrencyList();
-const MONGO_DB_URL="mongodb://localhost:27017/Currency";
+const MONGO_DB_URL="mongodb://localhost:27017/Currency_v2";
 
 function getCurrencyStream(code,response,normalised)
   {
