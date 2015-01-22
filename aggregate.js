@@ -55,8 +55,8 @@ console.log(token+" Normalised: "+normal);
 
 
 
-var sourceDb = "Currency";
-var targetDb = "CurrencyAggregate";
+var sourceDb = "Currency_v2";
+var targetDb = "CurrencyAggregate_v2";
 var host = "localhost";
 var port = 27017;
 
