@@ -46,17 +46,7 @@ module.exports = new function()
       
     };
   
-    this.argv = function (arg,defVal)
-    {
-        if (arg!=null) {
-            
-            return arg;
-        }
-        else
-        {
-            return defVal;
-        }
-    };
+
   
     this.getCollectionNames = function()
     {
@@ -88,21 +78,7 @@ module.exports = new function()
     
     };
     
-    this.err = function(err)
-    {
-      if(err)
-      {
-        throw err;
-      }
-    };
-    
-    this.logErr = function(err)
-    {
-      if(err)
-      {
-        console.error(err);
-      }
-    };
+
 }
 
 /*

@@ -8,6 +8,7 @@ const START_TIME = new Date().getTime();
 var combine = require("currencycombine");
 var MongoDB = require("mongodb");
 var events = require("events");
+var tools = require("tools");
 
 
 
@@ -21,10 +22,10 @@ const COLL_NAMES = combine.getCollectionNames();
 
 
 
-var mongoDbHost = combine.argv(process.argv[2],MONGO_DB_HOST);
-var mongoDbPort = combine.argv(process.argv[3],MONGO_DB_PORT);
-var currDbName = combine.argv(process.argv[4],CURR_DB_NAME);
-var aggDbName = combine.argv(process.argv[5],AGG_DB_NAME);
+var mongoDbHost = tools.argv(process.argv[2],MONGO_DB_HOST);
+var mongoDbPort = tools.argv(process.argv[3],MONGO_DB_PORT);
+var currDbName = tools.argv(process.argv[4],CURR_DB_NAME);
+var aggDbName = tools.argv(process.argv[5],AGG_DB_NAME);
 
 
 var MongoClient = MongoDB.MongoClient;
