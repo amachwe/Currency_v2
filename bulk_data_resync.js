@@ -3,7 +3,7 @@ const CURR_DB_NAME = "Currency_v2";
 const AGG_DB_NAME = "CurrencyAggregate_v2";
 const MONGO_DB_PORT = 27017;
 const TIMER_DISABLED = 0;
-
+const AGG_WORKER_COUNT = 4;
 const START_TIME = new Date().getTime();
 
 var combine = require("currencycombine");
@@ -290,8 +290,7 @@ function normaliseOne(completed,curr)
                                                               console.log("Count in statistics less than data count, possible data corruption. Please resync from Raw data again");  
                                                             }
                                                             if (completed.length == currList.length) {
-                                                                console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
-                                                                process.exit();
+                                                                
                                                             }
                                                        });
                                         
@@ -299,6 +298,58 @@ function normaliseOne(completed,curr)
                           });
                        
            });
+}
+
+
+function aggregate()
+{
+    var SRC = "mongodb://"+MONGO_DB_HOST+":"+MONGO_DB_PORT+"/"+CURR_DB_NAME;
+    var TGT = "mongodb://"+MONGO_DB_HOST+":"+MONGO_DB_PORT+"/"+AGG_DB_NAME;
+    var batchSize = currList.length*1/AGG_WORKER_COUNT;
+    var activeTokens=[];
+    var list = [];
+    var batchCount = 0;
+ 
+    for(var i=0;i<currList.length;i++)
+    {
+        list.push(currList[i]);
+        if (list.length>=batchSize) {
+            batchCount++;
+            console.log(batchCount,list);
+            activeTokens.push(batchCount);
+            
+            var cp = fork("./aggregate",[list,true,SRC,TGT,batchCount]);
+            
+            cp.on('exit', function()
+                  {
+                    activeTokens.pop();
+                    if (activeTokens.length == 0) {
+                        console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
+                                                                    process.exit();
+                    }
+                  });
+            list = [];
+        }
+        
+    }
+    
+      if (list.length> 0) {
+            batchCount++;
+            console.log(batchCount,list);
+            activeTokens.push(batchCount);
+            
+            var cp = fork("./aggregate",[list,true,SRC,TGT,batchCount]);
+            
+            cp.on('exit', function()
+                  {
+                    activeTokens.pop();
+                    if (activeTokens.length == 0) {
+                        console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
+                                                                    process.exit();
+                    }
+                  });
+        }
+    
 }
 var currDb = null;
 var aggDb = null;
