@@ -51,6 +51,18 @@ app.get("/currency/sequence/normalised/:code", function(request,response)
          getCurrencyStream(request.params.code, response,true);
 
        });
+
+/*
+Sequence Aggregate Stream
+*/
+app.get("/currency/sequence/aggregate/:code", function(request,response)
+       {
+         response.header("Access-Control-Allow-Origin", "*");
+         response.header("Access-Control-Allow-Headers", "X-Requested-With");
+         
+         getAggregateCurrencyStream(request.params.code, response);
+
+       });
 app.listen(PORT);
 console.log("Currency API Active on port: "+PORT);
 
@@ -63,6 +75,7 @@ var JSONStream = require('JSONStream');
 
 const currency_list = combine.getCurrencyList();
 const MONGO_DB_URL="mongodb://localhost:27017/Currency_v2";
+const MONGO_DB_AGG_URL = "mongodb://localhost:27017/CurrencyAggregate_v2";
 
 function getCurrencyStream(code,response,normalised)
   {
@@ -77,6 +90,36 @@ function getCurrencyStream(code,response,normalised)
                                 code = "NORM_"+code;
                               }
                              db.collection(code, function(err,coll)
+                                      {
+                                        if(err) throw err;
+                                        response.set('Content-Type', 'application/json');
+
+                                        coll.find().stream().pipe(JSONStream.stringify()).pipe(response);
+
+                                      });
+
+
+                       });
+        }
+       else
+        {
+
+           response.send("Currency code not found: "+code+"");
+
+        }
+  }
+  
+  function getAggregateCurrencyStream(code,response)
+  {
+
+      if(currency_list[code]!=null)
+       {
+         mongoClient.connect(MONGO_DB_AGG_URL, function(err,db)
+                       {
+                         if(err) throw err;
+
+                              
+                             db.collection("AGG_"+code, function(err,coll)
                                       {
                                         if(err) throw err;
                                         response.set('Content-Type', 'application/json');

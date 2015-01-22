@@ -31,6 +31,7 @@
               }
         }
         var base="";
+        var measure = ["avg","stdev"];
         const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
         var popularOnly = false;
         function getStream(_popularOnly,normalised)
@@ -46,9 +47,59 @@
             }
         }
         
+        function getAggStream()
+        {
+            
+            base = $(base_currency).val();
+            
+            $.ajax({url:HOST+"/currency/sequence/aggregate/"+base,type:"GET",success:processAggSequence});
+            
+        }
+        
+        function processAggSequence(data,type,jqXHR)
+        {
+            
+            var length = data.length;
+            
+            $("#count_view").html("Count: "+length);
+            $("#mode_view").html("Popular Only: "+popularOnly);
+            
+            for(var j=0;j<measure.length;j++)
+            {
+                var dataGrid=[["Time","Currency"]];
+                $("#chart_div_"+measure[j]).remove();
+                var output = "";
+                
+                
+                for(var i=0;i<length;i++)
+                {
+                   var currency = data[i];
+                   
+                   dataGrid.push([currency["_id"]*1,currency[measure[j]]]);   
+                }
+        
+                var dataSet = google.visualization.arrayToDataTable(dataGrid);
+
+                var options = {
+                  title: 'Currency Trend: '+base+" - "+measure[j],
+                  hAxis: {title: 'Time', titleFontSize: 10},
+                  vAxis: {title: base+" - "+measure[j], titleFontSize: 10},
+                  legend: 'none',
+                  pointSize: 1
+                };
+
+                $("<div style=\"height: 100px; width: 1000px;\"id=\"chart_div_"+measure[j]+"\"></div>").appendTo("#chart_div");
+ 
+                (new google.visualization.ScatterChart(document.getElementById('chart_div_'+measure[j]))).draw(dataSet, options);
+                
+                
+               
+            }
+        }
         
         function processSequence(data,type,jqXHR)
         {
+            
             var length = data.length;
             $("#count_view").html("Count: "+length);
             $("#mode_view").html("Popular Only: "+popularOnly);
@@ -63,7 +114,7 @@
                     {
                        var currency = data[i];
                        
-                       dataGrid.push([currency["_id"],currency[codeList[j]]]);   
+                       dataGrid.push([currency["_id"]*1,currency[codeList[j]]]);   
                     }
             
                     var dataSet = google.visualization.arrayToDataTable(dataGrid);
@@ -89,11 +140,12 @@
    
 </head>
 <body onload="populateDropDown();">
-    Base Currency: <select id="base_currency"></select>
+    <span style="font-family:verdana">Base Currency:</span><select id="base_currency"></select>
     <input style="margin-left: 50px;" type="button" id="generate" onclick="getStream(false);" value="Get Charts">
     <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream(true);" value="Get Popular Charts"></input>
     <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream(true,true);" value="Get Popular Charts (Normalised)"></input>
-    <span style="margin-left: 50px;" id="count_view"></span><span style="margin-left: 50px;" id="mode_view"></span>
+    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getAggStream();" value="Get Aggregate Charts (Normalised)"></input>
+    <div style="padding:10px;font-family:verdana" ><span style="margin-left: 50px;" id="count_view"></span><span style="margin-left: 50px;" id="mode_view"></span></div>
     <div id="chart_div"></div>
 </body>
 </html>
