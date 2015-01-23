@@ -34,9 +34,11 @@
         var measure = ["avg","stdev"];
         const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
         var popularOnly = false;
-        function getStream(_popularOnly,normalised)
+        function getStream()
         {
-            popularOnly = _popularOnly;
+            popularOnly = getOptions().popular;
+            normalised = getOptions().normal;
+            
             base = $(base_currency).val();
             if (normalised!=null && normalised == true) {
                 $.ajax({url:HOST+"/currency/sequence/normalised/"+base,type:"GET",success:processSequence});
@@ -47,9 +49,9 @@
             }
         }
         
-        function getAggStream(_popularOnly)
+        function getAggStream()
         {
-            popularOnly = _popularOnly;
+            popularOnly = getOptions().popular;
             
             base = $(base_currency).val();
             
@@ -104,6 +106,9 @@
         
         function processSequence(data,type,jqXHR)
         {
+            var options = getOptions();
+            
+            popularOnly = options.popular;
             
             var length = data.length;
             $("#count_view").html("Count: "+length);
@@ -141,14 +146,26 @@
             }
         }
         
+        
+        function getOptions()
+        {
+            var options = {};
+            
+            options.popular = $(chxPopular).prop("checked") ? true : false;
+            options.normal = $(chxNormal).prop("checked") ? true : false;
+            
+            return options;
+        }
     </script>
    
 </head>
 <body onload="populateDropDown();">
     <span style="font-family:verdana">Base Currency:</span><select id="base_currency"></select>
     <input style="margin-left: 50px;" type="button" id="generate" onclick="getStream(false);" value="Get Charts">
-    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream(true);" value="Get Popular Charts"></input>
-    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream(true,true);" value="Get Popular Charts (Normalised)"></input>
+        <input type="checkbox" id="chxPopular">Popular Only</input>
+        <input type="checkbox" id="chxNormal">Normalised Data</input>
+    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream();" value="Get Popular Charts"></input>
+    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream();" value="Get Popular Charts (Normalised)"></input>
     <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getAggStream();" value="Get Aggregate Charts (Normalised)"></input>
     <span style="padding:5px;font-family:verdana;font-size:x-small;" ><span style="margin-left: 5px;" id="count_view"></span><span style="margin-left: 10px;" id="mode_view"></span></span>
     <div style="padding-top:10px" id="chart_div"></div>
