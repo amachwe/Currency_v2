@@ -162,11 +162,10 @@
 <body onload="populateDropDown();">
     <span style="font-family:verdana">Base Currency:</span><select id="base_currency"></select>
     <input style="margin-left: 50px;" type="button" id="generate" onclick="getStream(false);" value="Get Charts">
-        <input type="checkbox" id="chxPopular">Popular Only</input>
-        <input type="checkbox" id="chxNormal">Normalised Data</input>
-    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream();" value="Get Popular Charts"></input>
-    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getStream();" value="Get Popular Charts (Normalised)"></input>
-    <input style="margin-left: 50px;" type="button" id="generatePop" onclick="getAggStream();" value="Get Aggregate Charts (Normalised)"></input>
+    <input style="margin-left: 20px;" type="button" id="generatePop" onclick="getAggStream();" value="Get Aggregate Charts (Normalised)"></input>
+    <span style="padding:10px"> <input type="checkbox" id="chxPopular"><span style="padding:2px;font-family:verdana;font-size:small;">Popular Only</span></input>
+        <input  type="checkbox" id="chxNormal"><span style="padding:2px;font-family:verdana;font-size:small;">Normalised Data</span></input>
+    </span>
     <span style="padding:5px;font-family:verdana;font-size:x-small;" ><span style="margin-left: 5px;" id="count_view"></span><span style="margin-left: 10px;" id="mode_view"></span></span>
     <div style="padding-top:10px" id="chart_div"></div>
 </body>
