@@ -179,6 +179,7 @@ function updateStats(from,to,value)
         statsDoc.min = value;
     }
     
+    statsDoc.range = statsDoc.max - statsDoc.min;
     statsList[from][to] = statsDoc;
 }
 
@@ -266,7 +267,7 @@ function normaliseOne(completed,curr)
                                                  if (to!="_id") {
                                                      
                                                    
-                                                   normDoc[to]=item[to]*1/statsDoc[to].max;
+                                                   normDoc[to]=(item[to]-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
                                                  }
                                                    
                                                 }
