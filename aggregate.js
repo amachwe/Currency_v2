@@ -288,6 +288,8 @@ function task(client, basedb, aggdb, base,running)
                                                                                             
                                                                                             var val = doc[to];
                                                                                             
+                                                                                            agg_doc[to] = val;
+                                                                                            
                                                                                             var diff = (val-avg);
                                                                                             sqrSum = sqrSum + (diff*diff);
                                                                                            
