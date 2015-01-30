@@ -190,7 +190,10 @@ function deltaTask(client, basedb, aggdb, base,running,docId)
                                     
                                     running.pop();
                                     if (running.length == 0) {
-                                        process.exit();
+                                        console.log("Closing DB connections");
+                                        basedb.close();
+                                        aggdb.close();
+                                        console.log("Done");
                                     }
                                  }
                                  catch(e)
@@ -314,7 +317,10 @@ function task(client, basedb, aggdb, base,running)
                                                                                                             
                                                                                                             running.pop();
                                                                                                             if (running.length == 0) {
-                                                                                                                process.exit();
+                                                                                                                console.log("Closing DB connections");
+                                                                                                                basedb.close();
+                                                                                                                aggdb.close();
+                                                                                                                console.log("Done");
                                                                                                             }
                                                                                                          }
                                                                                                          catch(e)

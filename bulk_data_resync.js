@@ -346,7 +346,10 @@ function aggregate()
                     activeTokens.pop();
                     if (activeTokens.length == 0) {
                         console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
-                                                                    process.exit();
+                        console.log("Closing database connections");                                            
+                        currDb.close();
+                        aggDb.close();
+                        //process.exit();
                     }
                   });
         }
