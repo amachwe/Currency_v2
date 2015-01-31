@@ -228,12 +228,105 @@ function normalise(){
                         console.log("Norm Collection dropped.");
                         
                         console.log("Processing docs: ",statsList["USD"]["GBP"].count*currList.length);
-                        for (var i = 0; i<currList.length;i++) {
-                            
-                                normaliseOne(completed,currList[i]);
-                                
-                        }
+                       
+                        normaliseAll();
                 }).dropAllCurrencies(normCollList);
+}
+
+function normaliseAll()
+{
+
+
+    var count = statsList["USD"]["GBP"].count*currList.length;
+    console.log("Processing started..");
+    
+    var normDrop = new Drop(currDb);
+    normDrop.on('dropped-all', function()
+                    {
+                        
+                         
+            
+                            
+            
+                            
+                            console.log("Norm Collection dropped.");
+                            var stream = currDb.collection(COLL_NAMES.raw).find().stream();
+                            console.log( statsList);
+                        
+                            stream.on('data',
+                                    function(item)
+                                    {
+                                        
+                                        var rates = item["rates"];
+                                       
+                                        for (var from in rates) {
+                                            
+                                                var normDoc = {};
+                                                normDoc._id = item._id;
+                                            
+                                                var statsDoc = statsList[from];
+                                                
+                                            
+                                                for(var to in rates)
+                                                {
+                                                    
+                                                 if (to!="_id" && from!=to) {
+                                                     
+                                                   if (statsDoc[to].max != statsDoc[to].min) {
+                                                    
+                                                        var value = rates[from]/rates[to];
+                                                        normDoc[to]=(value-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
+                                                   }
+                                                   else
+                                                   {
+                                                        normDoc[to]=statsDoc[to].max;
+                                                   }
+                                                 }
+                                                   
+                                                }
+                                                
+                                            
+                                         
+                                        
+                                        
+                                        currDb.collection("NORM_"+from).insert(normDoc,{safe:true}, function(err,result)
+                                                       {
+                                                            
+                                                            hErr(err);
+                                                            
+                                                            count--;
+                                                            
+                                                            if (count == 0) {
+                                                              aggregate(); 
+                                                              
+                                                            }
+                                                            
+                                                            if (count < 0) {
+                                                              console.log("Count in statistics less than data count, possible data corruption. Please resync from Raw data again");  
+                                                            }
+                                                            
+                                                       });
+                                            
+                                            
+                                            
+                                                
+                                            
+                                            
+                                            ;
+                                         
+                                        }
+                                        
+                                        
+                                    }).on('end',function ()
+                                        {
+                                            
+                                            console.log("End Raw Table processing.");
+                                          
+                                            
+                                        });
+                           
+                    }).dropAllCurrencies(normCollList);
+
 }
 
 function normaliseOne(completed,curr)
@@ -266,8 +359,14 @@ function normaliseOne(completed,curr)
                                                 {
                                                  if (to!="_id") {
                                                      
-                                                   
-                                                   normDoc[to]=(item[to]-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
+                                                   if (statsDoc[to].max != statsDoc[to].min) {
+                                                    
+                                                        normDoc[to]=(item[to]-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
+                                                   }
+                                                   else
+                                                   {
+                                                        normDoc[to]=statsDoc[to].max;
+                                                   }
                                                  }
                                                    
                                                 }
@@ -346,10 +445,9 @@ function aggregate()
                     activeTokens.pop();
                     if (activeTokens.length == 0) {
                         console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
-                        console.log("Closing database connections");                                            
-                        currDb.close();
-                        aggDb.close();
-                        //process.exit();
+                                                                  
+                       
+                        process.exit();
                     }
                   });
         }

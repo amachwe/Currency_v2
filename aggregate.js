@@ -3,8 +3,8 @@ var Server =  require('mongodb').Server;
 
 
 var MONGO_DB_URL = "mongodb://localhost:27017";
-var DB = "Currency";
-var AGG_DB = "CurrencyAggregate";
+var DB = "Currency_v2";
+var AGG_DB = "CurrencyAggregate_v2";
 
 var db_url = MONGO_DB_URL+"/"+DB;
 var agg_db_url = MONGO_DB_URL+"/"+AGG_DB;
