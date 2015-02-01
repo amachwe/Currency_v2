@@ -1,6 +1,6 @@
 const MONGO_DB_HOST="localhost";
 const CURR_DB_NAME = "Currency_v2";
-const AGG_DB_NAME = "CurrencyAggregate_v2";
+
 const MONGO_DB_PORT = 27017;
 const TIMER_DISABLED = 0;
 const AGG_WORKER_COUNT = 4;
@@ -11,6 +11,7 @@ var MongoDB = require("mongodb");
 var events = require("events");
 var tools = require("tools");
 var fork = require("child_process").fork;
+
 
 
 
@@ -27,7 +28,7 @@ const COLL_NAMES = combine.getCollectionNames();
 var mongoDbHost = tools.argv(process.argv[2],MONGO_DB_HOST);
 var mongoDbPort = tools.argv(process.argv[3],MONGO_DB_PORT);
 var currDbName = tools.argv(process.argv[4],CURR_DB_NAME);
-var aggDbName = tools.argv(process.argv[5],AGG_DB_NAME);
+
 
 
 
@@ -37,7 +38,7 @@ var Server = MongoDB.Server;
 
 var mongoClient = new MongoClient(new Server(mongoDbHost,mongoDbPort));
 
-console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName+ "\tAgg Db: "+aggDbName);
+console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName);
     
 
  
@@ -52,14 +53,15 @@ function Drop(_db) {
                             
                             for(var i=0;i<currencyList.length;i++)
                             {
-                                
-                                currDb.dropCollection(currencyList[i],function(err,result)
+                               
+                                self.db.dropCollection(currencyList[i],function(err,result)
                                                       {
                                                          hLogErr("DROP",err);
+                                                       
                                                         count++;
                                                         if (count == currencyList.length) {
                                                             console.log("Dropped all");
-                                                            self.emit('dropped-all');
+                                                            self.emit('dropped-all',count);
                                                             
                                                         }
                                                       });
@@ -192,7 +194,7 @@ function writeStat(completed, key, statsDoc)
                                                                             
                                                                             if (completed.length == currList.length) {
                                                                                 console.log("Stats done...");
-                                                                                normalise();
+                                                                                normaliseAndAggregate();
                                                                             }
                                                                            
                                                                           });
@@ -218,194 +220,12 @@ function writeStats()
 }
 
 
-function normalise(){
-    console.log("Starting Norm Writing...");
-    var normDrop = new Drop(currDb);
-    var completed = [];
-    normDrop.on('dropped-all',
-                function()
-                {
-                        console.log("Norm Collection dropped.");
-                        
-                        console.log("Processing docs: ",statsList["USD"]["GBP"].count*currList.length);
-                       
-                        normaliseAll();
-                }).dropAllCurrencies(normCollList);
-}
 
-function normaliseAll()
+
+
+function normaliseAndAggregate()
 {
 
-
-    var count = statsList["USD"]["GBP"].count*currList.length;
-    console.log("Processing started..");
-    
-    var normDrop = new Drop(currDb);
-    normDrop.on('dropped-all', function()
-                    {
-                        
-                         
-            
-                            
-            
-                            
-                            console.log("Norm Collection dropped.");
-                            var stream = currDb.collection(COLL_NAMES.raw).find().stream();
-                            console.log( statsList);
-                        
-                            stream.on('data',
-                                    function(item)
-                                    {
-                                        
-                                        var rates = item["rates"];
-                                       
-                                        for (var from in rates) {
-                                            
-                                                var normDoc = {};
-                                                normDoc._id = item._id;
-                                            
-                                                var statsDoc = statsList[from];
-                                                
-                                            
-                                                for(var to in rates)
-                                                {
-                                                    
-                                                 if (to!="_id" && from!=to) {
-                                                     
-                                                   if (statsDoc[to].max != statsDoc[to].min) {
-                                                    
-                                                        var value = rates[from]/rates[to];
-                                                        normDoc[to]=(value-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
-                                                   }
-                                                   else
-                                                   {
-                                                        normDoc[to]=statsDoc[to].max;
-                                                   }
-                                                 }
-                                                   
-                                                }
-                                                
-                                            
-                                         
-                                        
-                                        
-                                        currDb.collection("NORM_"+from).insert(normDoc,{safe:true}, function(err,result)
-                                                       {
-                                                            
-                                                            hErr(err);
-                                                            
-                                                            count--;
-                                                            
-                                                            if (count == 0) {
-                                                              aggregate(); 
-                                                              
-                                                            }
-                                                            
-                                                            if (count < 0) {
-                                                              console.log("Count in statistics less than data count, possible data corruption. Please resync from Raw data again");  
-                                                            }
-                                                            
-                                                       });
-                                            
-                                            
-                                            
-                                                
-                                            
-                                            
-                                            ;
-                                         
-                                        }
-                                        
-                                        
-                                    }).on('end',function ()
-                                        {
-                                            
-                                            console.log("End Raw Table processing.");
-                                          
-                                            
-                                        });
-                           
-                    }).dropAllCurrencies(normCollList);
-
-}
-
-function normaliseOne(completed,curr)
-{
-    currDb.collection("NORM_"+curr,function(err,coNorm)
-    {
-                                               
-        hLogErr("NORM",err);
-                        
-                           
-        currDb.collection(curr,function(err,coCurr)
-                          {
-                            var stream = coCurr.find().stream();
-                           
-                            
-                            var count = statsList["USD"]["GBP"].count;
-                            
-                            stream.on('data',
-                                    function(item)
-                                    {
-                                    
-                                        
-                                            
-                                             
-                                                var normDoc = {};
-                                                normDoc._id = item._id;
-                                                var statsDoc = statsList[curr];
-                                                
-                                                for(var to in item)
-                                                {
-                                                 if (to!="_id") {
-                                                     
-                                                   if (statsDoc[to].max != statsDoc[to].min) {
-                                                    
-                                                        normDoc[to]=(item[to]-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
-                                                   }
-                                                   else
-                                                   {
-                                                        normDoc[to]=statsDoc[to].max;
-                                                   }
-                                                 }
-                                                   
-                                                }
-                                                
-                                            
-                                         
-                                        
-                                        
-                                        coNorm.insert(normDoc,{safe:true}, function(err,result)
-                                                       {
-                                                            
-                                                            hErr(err);
-                                                            
-                                                            count--;
-                                                            
-                                                            if (count == 0) {
-                                                              completed.push(curr);  
-                                                              
-                                                            }
-                                                            
-                                                            if (count < 0) {
-                                                              console.log("Count in statistics less than data count, possible data corruption. Please resync from Raw data again");  
-                                                            }
-                                                            if (completed.length == currList.length) {
-                                                                aggregate();
-                                                            }
-                                                       });
-                                        
-                                    });
-                          });
-                       
-           });
-}
-
-
-function aggregate()
-{
-    var SRC = "mongodb://"+MONGO_DB_HOST+":"+MONGO_DB_PORT+"/"+CURR_DB_NAME;
-    var TGT = "mongodb://"+MONGO_DB_HOST+":"+MONGO_DB_PORT+"/"+AGG_DB_NAME;
     var batchSize = currList.length*1/AGG_WORKER_COUNT;
     var activeTokens=[];
     var list = [];
@@ -418,8 +238,10 @@ function aggregate()
             batchCount++;
             activeTokens.push(batchCount);
             
-            var cp = fork("./aggregate",[JSON.stringify(list),true,SRC,TGT,batchCount]);
+            var cp = fork("./normaliseAndAggregate",[JSON.stringify(list),MONGO_DB_HOST,MONGO_DB_PORT,CURR_DB_NAME,batchCount]);
             
+            cp.send(statsList);
+
             cp.on('exit', function()
                   {
                     activeTokens.pop();
@@ -438,8 +260,10 @@ function aggregate()
             console.log(batchCount,list);
             activeTokens.push(batchCount);
             
-            var cp = fork("./aggregate",[list,true,SRC,TGT,batchCount]);
+            var cp = fork("./normaliseAndAggregate",[JSON.stringify(list),MONGO_DB_HOST,MONGO_DB_PORT,CURR_DB_NAME,batchCount]);
             
+            cp.send(statsList);
+
             cp.on('exit', function()
                   {
                     activeTokens.pop();
@@ -454,15 +278,14 @@ function aggregate()
     
 }
 var currDb = null;
-var aggDb = null;
+
 
 mongoClient.open(function(err,client)
                  {
                     
                     hErr(err);
                     currDb = client.db(currDbName);
-                    aggDb = client.db(aggDbName);
-                   
+                 
                     
                     currDb.collection(COLL_NAMES.raw,rawProcessor);
                  });
