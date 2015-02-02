@@ -3,8 +3,8 @@ var Server =  require('mongodb').Server;
 
 
 var MONGO_DB_URL = "mongodb://localhost:27017";
-var DB = "Currency";
-var AGG_DB = "CurrencyAggregate";
+var DB = "Currency_v2";
+var AGG_DB = "CurrencyAggregate_v2";
 
 var db_url = MONGO_DB_URL+"/"+DB;
 var agg_db_url = MONGO_DB_URL+"/"+AGG_DB;
@@ -190,7 +190,10 @@ function deltaTask(client, basedb, aggdb, base,running,docId)
                                     
                                     running.pop();
                                     if (running.length == 0) {
-                                        process.exit();
+                                        console.log("Closing DB connections");
+                                        basedb.close();
+                                        aggdb.close();
+                                        console.log("Done");
                                     }
                                  }
                                  catch(e)
@@ -314,7 +317,10 @@ function task(client, basedb, aggdb, base,running)
                                                                                                             
                                                                                                             running.pop();
                                                                                                             if (running.length == 0) {
-                                                                                                                process.exit();
+                                                                                                                console.log("Closing DB connections");
+                                                                                                                basedb.close();
+                                                                                                                aggdb.close();
+                                                                                                                console.log("Done");
                                                                                                             }
                                                                                                          }
                                                                                                          catch(e)
