@@ -1,6 +1,6 @@
 var MongoClient = require("mongodb").MongoClient;
 
-const SOURCE = "mongodb://localhost:27017/Currency";
+const SOURCE = "mongodb://192.168.0.29:27017/Currency_v2";
 const TARGET = "mongodb://localhost:27017/Currency_v2";
 const SRC_COLL = "Raw";
 const TGT_COLL = "Raw";
