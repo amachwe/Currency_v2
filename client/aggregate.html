@@ -70,40 +70,60 @@
             var length = data.length;
             $("#count_view").html("Count: "+length);
             $("#mode_view").html("Popular Only: "+popularOnly);
+            
+            var titleRow = ["Time"];
+            
             for(var j=0;j<codeList.length;j++)
             {
-                var dataGrid=[["Time",codeList[j],"Avg"]];
-                $("#chart_div_"+codeList[j]).remove();
-                var output = "";
                 if (base!=codeList[j] && (popularOnly == false || $.inArray(codeList[j],popular)>=0)) {
+                 
+                    titleRow.push(codeList[j]);
+                }
+            }
+            
+            titleRow.push("Avg");
+            
+            var dataGrid=[titleRow];
+            $("#chart_div_agg").remove();
+            var output = "";
+            
                 
                     
                     for(var i=0;i<length;i++)
                     {
-                       var avg = data[i]._avg;
-                       var currency = data[i];
+                        var row=[data[i]._id*1];
+                        var avg = data[i]._avg*1;
+                        
+                        for(var j=0;j<codeList.length;j++)
+                        {
+                            if (base!=codeList[j] && (popularOnly == false || $.inArray(codeList[j],popular)>=0)) {
+                                
+                                row.push(data[i][codeList[j]]);
+                            }
+                        }
+                        
+                        row.push(avg);
                        
-                       
-                       dataGrid.push([currency["_id"]*1,currency[codeList[j]],avg]);   
+                       dataGrid.push(row);   
                     }
             
                     var dataSet = google.visualization.arrayToDataTable(dataGrid);
     
                     var options = {
-                      title: 'Currency Trend: '+currencyList[base]+' vs '+currencyList[codeList[j]],
+                      title: 'Currency Trend: '+currencyList[base]+' vs Agg',
                       hAxis: {title: 'Time', titleFontSize: 10},
-                      vAxis: {title: base+" - 1 "+codeList[j], titleFontSize: 10},
+                      vAxis: {title: base+" Aggregate", titleFontSize: 10},
                       legend: {position:"right"},
                       pointSize: 1
                     };
 
-                    $("<div style=\"height: 100px; width: 1200px;\"id=\"chart_div_"+codeList[j]+"\"></div>").appendTo("#chart_div");
+                    $("<div style=\"height: 700px; width: 1600px;\"id=\"chart_div_agg\"></div>").appendTo("#chart_div");
      
-                    (new google.visualization.ScatterChart(document.getElementById('chart_div_'+codeList[j]))).draw(dataSet, options);
-                }
+                    (new google.visualization.ScatterChart(document.getElementById('chart_div_agg'))).draw(dataSet, options);
+            
                 
                
-            }
+            
         }
         
         function processSequence(data,type,jqXHR)
