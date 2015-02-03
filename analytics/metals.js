@@ -39,7 +39,10 @@ var STAGE2 = [
                                 {
                                     $avg : "$XAU"
                                 },
-                            av : {$push : "$avg"}
+                            av :
+                                {
+                                    $push : "$avg"
+                                }
                                 
                             }
                         }
@@ -62,8 +65,8 @@ mongoClient.open(function(err,client)
                     console.log("Got target collection");
                     stg1Coll.drop(function(err,res)
                                  {
-                                    STAGE1[0].$project.avg[currList[count].split("_")[1]]="$_avg";
-                                   
+                                    STAGE1[0].$project.avg.base = {$literal : currList[count].split("_")[1]};
+                                    STAGE1[0].$project.avg.val = "$_avg";
                                     executeStg(currDb,stg1Coll,currList[count],STAGE1,'stg1done');
                                     
                                     event.on('stg1done',function(curr)
@@ -89,7 +92,8 @@ mongoClient.open(function(err,client)
                                       else
                                       {
                                         
-                                        STAGE1[0].$project.avg[currList[count].split("_")[1]]="$_avg";
+                                        STAGE1[0].$project.avg.base = {$literal : currList[count].split("_")[1] };
+                                        STAGE1[0].$project.avg.val = "$_avg";
                                         executeStg(currDb,stg1Coll,nextCurr,STAGE1,'stg1done');
                                       }
                                     });
