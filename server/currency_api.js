@@ -63,6 +63,17 @@ app.get("/currency/sequence/aggregate/:code", function(request,response)
          getCurrencyStream(request.params.code, response,true);
 
        });
+
+/*
+Full Average Sequence vs Code
+*/
+app.get("/currency/sequence/analysis/:code", function(request,response)
+        {
+          response.header("Access-Control-Allow-Origin", "*");
+          response.header("Access-Control-Allow-Headers", "X-Requested-With");
+          
+          getAnalysisStream(request.params.code,response, true);
+        });
 app.listen(PORT);
 console.log("Currency API Active on port: "+PORT);
 
@@ -107,6 +118,11 @@ function getCurrencyStream(code,response,normalised)
            response.send("Currency code not found: "+code+"");
 
         }
+  }
+
+function getAnalyaiaStream(code,response)
+  {
+    
   }
   
  
