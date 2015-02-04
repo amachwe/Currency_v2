@@ -67,12 +67,12 @@ app.get("/currency/sequence/aggregate/:code", function(request,response)
 /*
 Full Average Sequence vs Code
 */
-app.get("/currency/sequence/analysis/:code", function(request,response)
+app.get("/currency/sequence/analysis/:type", function(request,response)
         {
           response.header("Access-Control-Allow-Origin", "*");
           response.header("Access-Control-Allow-Headers", "X-Requested-With");
           
-          getAnalysisStream(request.params.code,response, true);
+          getAnalysisStream(request.params.type,response);
         });
 app.listen(PORT);
 console.log("Currency API Active on port: "+PORT);
@@ -105,7 +105,12 @@ function getCurrencyStream(code,response,normalised)
                                         if(err) throw err;
                                         response.set('Content-Type', 'application/json');
 
-                                        coll.find().stream().pipe(JSONStream.stringify()).pipe(response);
+                                        var stream = coll.find().stream();
+                                        stream.on('end', function()
+                                                  {
+                                                    db.close();
+                                                  })
+                                        stream.pipe(JSONStream.stringify()).pipe(response);
 
                                       });
 
@@ -120,9 +125,44 @@ function getCurrencyStream(code,response,normalised)
         }
   }
 
-function getAnalyaiaStream(code,response)
+function getAnalysisStream(type,response)
   {
+    if (type == null) {
+      response.send("Bad analytics type.");
+      response.end();
+      return;
+    }
+    var collName = "";
+    if (type == "metals") {
+      collName = "AGG_AN_METALS";
+    }
     
+    if (collName == "") {
+      response.send("Empty analytics type.");
+      response.end();
+      return;
+    }
+    mongoClient.connect(MONGO_DB_URL, function(err,db)
+                       {
+                         if(err) throw err;
+
+                             
+                             db.collection(collName, function(err,coll)
+                                      {
+                                        if(err) throw err;
+                                        response.set('Content-Type', 'application/json');
+
+                                        var stream = coll.find().stream();
+                                        stream.on('end', function()
+                                                  {
+                                                    db.close();
+                                                  })
+                                        stream.pipe(JSONStream.stringify()).pipe(response);
+
+                                      });
+
+
+                       });
   }
   
  
