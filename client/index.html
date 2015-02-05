@@ -9,7 +9,7 @@
     <script type="text/javascript">
         const REMOTE = "http://192.168.0.29:3999";
         const LOCAL = "http://localhost:3999";
-        var HOST = LOCAL;
+        var HOST = REMOTE;
         
         
         google.load("visualization", "1", {packages:["corechart"]});
@@ -163,7 +163,7 @@
 </head>
 <body id="body" onload="populateDropDown();">
     <span id="endpoint" style="font-family:verdana;font-size:small"></span></span><span style="padding-left:15px;font-family:verdana;font-size:small">Base Currency:</span><select id="base_currency"></select>
-    <input style="margin-left: 50px;" type="button" id="generate" onclick="getStream(false);" value="Get Charts">
+    <input style="margin-left: 50px;" type="button" id="generate" onclick="getStream(false);" value="Get Charts"/>
     <input style="margin-left: 20px;" type="button" id="generatePop" onclick="getAggStream();" value="Get Aggregate Charts (Normalised)"></input>
     <span style="padding:10px"> <input type="checkbox" id="chxPopular"><span style="padding:2px;font-family:verdana;font-size:small;">Popular Only</span></input>
         <input  type="checkbox" id="chxNormal"><span style="padding:2px;font-family:verdana;font-size:small;">Normalised Data</span></input>
