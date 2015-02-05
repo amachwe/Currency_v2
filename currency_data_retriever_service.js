@@ -20,7 +20,7 @@ const KEY_DISCLAIMER="disclaimer";
 const KEY_LICENSE="license";
 
 var http=require('http');
-
+var fork = require("child_process").fork;
 var mongoClient=require('mongodb').MongoClient;
 
 var badResponseCount=0;
@@ -33,7 +33,7 @@ function loadCurrencyData()
     console.log("No need to get data for Saturday or Sunday, date: "+date);
     return;
   }
-  console.log("Retrieving.. "+date);
+  console.log("Retrieving.. ");
   try{
     http.request(REQUEST_OPTIONS, function(response)
                  {
@@ -60,7 +60,17 @@ function loadCurrencyData()
                                                  {
 
                                                    if(err) throw err;
-
+                                                    var cp = fork("delta_split");
+                                                    var msg = {};
+                                                    msg.data = jsonData;
+                                                    msg.type = "PROCESS";
+                                                    
+                                                    cp.send(msg);
+                                                    cp.on('exit',function()
+                                                          {
+                                                            var endTime = new Date();
+                                                            console.log(endTime,"Split done. Time taken (sec)",(endTime.getTime() - date.getTime())/1000);
+                                                          });
                                                    console.log("Done.");
                                                    
                                                  });
