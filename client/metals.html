@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <title>Trend Visualization</title>
+    <script type="text/javascript" src="./lib/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    
+    <script type="text/javascript">
+        const REMOTE = "http://192.168.0.29:3999";
+        const LOCAL = "http://localhost:3999";
+        var HOST = REMOTE;
+        
+        
+        google.load("visualization", "1", {packages:["corechart"]});
+        
+        var codeList =[];
+        var currencyList = null;
+        function populateDropDown()
+        {
+            $.ajax({url:HOST+"/currency/list",type:"GET",success:processCurrencyList});
+            $('#endpoint').html("<b>Endpoint: "+HOST+"</b>");
+        }
+        
+        function processCurrencyList(data,type,jqXHR)
+        {
+        
+        
+            currencyList = data;
+            for(var key in data)
+            {
+                codeList.push(key);    
+            }
+          
+        }
+        
+        var type="";
+        
+        var measure = ["avg","stdev"];
+        const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
+        
+        var popularOnly = false;
+    
+        
+        function getAggStream()
+        {
+            popularOnly = getOptions().popular;
+            
+            
+            type = $(analysis_type).val();
+            
+            $.ajax({url:HOST+"/currency/sequence/analysis/"+type,type:"GET",success:processSequence});
+            
+        }
+        
+        
+        
+        function processSequence(data,type,jqXHR)
+        {
+            var options = getOptions();
+            
+            popularOnly = options.popular;
+            console.log("Response1");
+            var length = data.length;
+            $("#count_view").html("Count: "+length);
+            $("#mode_view").html("Popular Only: "+popularOnly);
+            for(var j=0;j<codeList.length;j++)
+            {
+                var dataGrid=[["Time","AvgAg","AvgAu",codeList[j]]];
+                console.log("Response>",codeList[j]);
+                $("#chart_div_"+codeList[j]).remove();
+                var output = "";
+                if ( (popularOnly == false || $.inArray(codeList[j],popular)>=0)) {
+                
+                    for(var i=0;i<length;i++)
+                    {
+                       var currency = data[i];
+                       var avList = currency.av;
+                       var av = 0;
+                       for(var k=0;k<avList.length;k++)
+                       {
+                            if (avList[k].base==codeList[j]) {
+                                av=avList[k].val;
+                                break;
+                            }
+                       }
+                       var row = [currency["_id"]*1,currency["avAg"],currency["avAu"],av];
+                       console.log(row);
+                       dataGrid.push(row);   
+                    }
+            
+                    
+                    console.log("Response2");
+                    
+                    
+                    var dataSet = google.visualization.arrayToDataTable(dataGrid);
+    
+                    var options = {
+                      title: 'Currency Trend: Gold (Au)/Silver (Ag) vs '+currencyList[codeList[j]],
+                      hAxis: {title: 'Time', titleFontSize: 10},
+                      vAxis: {title: "Gold/Silver - 1 "+codeList[j], titleFontSize: 10},
+                      legend: {position:"right"},
+                      pointSize: 1
+                    };
+
+                    $("<div style=\"height: 100px; width: 1200px;\"id=\"chart_div_"+codeList[j]+"\"></div>").appendTo("#chart_div");
+     
+                    (new google.visualization.ScatterChart(document.getElementById('chart_div_'+codeList[j]))).draw(dataSet, options);
+                }
+                
+               
+            }
+        }
+        
+        
+        
+        function getOptions()
+        {
+            var options = {};
+            
+            options.popular = $(chxPopular).prop("checked") ? true : false;
+            
+            
+            return options;
+        }
+    </script>
+   
+</head>
+<body id="body" onload="populateDropDown();">
+    <span id="endpoint" style="font-family:verdana;font-size:small"></span>
+    <span style="padding-left:15px;font-family:verdana;font-size:small">Type:</span>
+    <select id="analysis_type">
+        <option value="metals">
+            Metals
+        </option>
+    </select>
+  
+    <input style="margin-left: 50px;" type="button" id="generate" onclick="getAggStream();" value="Get Analysis Chart"></input>
+        <span style="padding:10px"> <input type="checkbox" id="chxPopular"><span style="padding:2px;font-family:verdana;font-size:small;">Popular Only</span></input>
+   <br>
+    <span style="font-family:verdana;font-size:x-small;" ><span id="count_view"></span><span style="margin-left: 10px;" id="mode_view"></span></span>
+    
+    <br>
+    <div style="padding-top:10px" id="chart_div"></div>
+</body>
+</html>

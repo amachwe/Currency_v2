@@ -42,7 +42,7 @@ console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName);
     
 
  
-console.log((new Date())+"  Bulk Resync started.. obtaining database links");
+
 
 function Drop(_db) {
                         this.db = _db;
@@ -279,6 +279,7 @@ function normaliseAndAggregate()
 }
 var currDb = null;
 
+console.log((new Date())+"  Bulk Resync started.. obtaining database links");
 
 mongoClient.open(function(err,client)
                  {
@@ -286,6 +287,7 @@ mongoClient.open(function(err,client)
                     hErr(err);
                     currDb = client.db(currDbName);
                  
+                    console.log("Links obtained.");
                     
                     currDb.collection(COLL_NAMES.raw,rawProcessor);
                  });

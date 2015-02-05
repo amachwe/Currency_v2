@@ -26,7 +26,7 @@ process.on('message', function(msg)
 {
     statsList = msg;
     
-    console.log(batchCount, "Executing with",currList.length,"docs");
+    console.log(batchCount, "Executing with",currList.length,"currencies");
     mongoClient.open(function(err,client){
         if (err) {
             throw err;
