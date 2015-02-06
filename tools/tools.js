@@ -6,7 +6,7 @@ module.exports = new function()
   
     this.argv = function (arg,defVal)
     {
-        if (arg!=null) {
+        if (arg!=null && arg!="null") {
             
             return arg;
         }

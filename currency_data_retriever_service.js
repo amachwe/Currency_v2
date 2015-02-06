@@ -60,6 +60,8 @@ function loadCurrencyData()
                                                  {
 
                                                    if(err) throw err;
+                                                   try
+                                                   {
                                                     var cp = fork("delta_split");
                                                     var msg = {};
                                                     msg.data = jsonData;
@@ -69,9 +71,14 @@ function loadCurrencyData()
                                                     cp.on('exit',function()
                                                           {
                                                             var endTime = new Date();
-                                                            console.log(endTime,"Split done. Time taken (sec)",(endTime.getTime() - date.getTime())/1000);
+                                                            console.log(endTime,"Split completed. Time taken (sec)",(endTime.getTime() - date.getTime())/1000);
                                                           });
-                                                   console.log("Done.");
+                                                 
+                                                   }
+                                                   catch(e)
+                                                   {
+                                                    console.log("Split completed with errors.",e);
+                                                   }
                                                    
                                                  });
                                 }
