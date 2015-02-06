@@ -5,6 +5,7 @@ const MONGO_DB_PORT = 27017;
 const TIMER_DISABLED = 0;
 const AGG_WORKER_COUNT = 4;
 const START_TIME = new Date().getTime();
+const DO_SPLIT = false;
 
 var combine = require("currencycombine");
 var MongoDB = require("mongodb");
@@ -28,7 +29,7 @@ const COLL_NAMES = combine.getCollectionNames();
 var mongoDbHost = tools.argv(process.argv[2],MONGO_DB_HOST);
 var mongoDbPort = tools.argv(process.argv[3],MONGO_DB_PORT);
 var currDbName = tools.argv(process.argv[4],CURR_DB_NAME);
-
+var doSplit = tools.argv(process.argv[5],DO_SPLIT);
 
 
 
@@ -99,6 +100,8 @@ function hLogErr(category,err)
 
 function rawProcessor(err,raw)
 {
+    if (doSplit) {
+        
     
     console.log("Processing started..");
     hErr(err);
@@ -159,7 +162,30 @@ function rawProcessor(err,raw)
     
    
         
-    
+    }
+    else
+    {
+        console.log("Skipping split, doing normalisation and aggregate.");
+        var stream = currDb.collection(COLL_NAMES.stats).find().stream();
+        
+        stream.on('data',function(data)
+            {
+                       
+                var from = data._id.split("_")[1];
+                statsList[from] = {};
+                for(var to in data)
+                {
+                    if (to!="_id" && to!=from) {
+                        statsList[from][to] = data[to];
+                    }
+                }
+                
+            }).on('end', function(){
+                        console.log("Start Normalising and Aggregation.");
+                        normaliseAndAggregate();
+            });
+        
+    }
     
 }
 
