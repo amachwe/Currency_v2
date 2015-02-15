@@ -5,7 +5,7 @@ const MONGO_DB_PORT = 27017;
 const TIMER_DISABLED = 0;
 const AGG_WORKER_COUNT = 4;
 const START_TIME = new Date().getTime();
-const DO_SPLIT = false;
+const DO_SPLIT = "false";
 
 var combine = require("currencycombine");
 var MongoDB = require("mongodb");
@@ -39,7 +39,7 @@ var Server = MongoDB.Server;
 
 var mongoClient = new MongoClient(new Server(mongoDbHost,mongoDbPort));
 
-console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName);
+console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName+"\tDo Split: "+doSplit);
     
 
  
@@ -100,7 +100,7 @@ function hLogErr(category,err)
 
 function rawProcessor(err,raw)
 {
-    if (doSplit) {
+    if (doSplit=="true") {
         
     
     console.log("Processing started..");

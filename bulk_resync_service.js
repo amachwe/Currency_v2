@@ -2,7 +2,7 @@ var tools = require("tools");
 var fork = require("child_process").fork;
 
 const TIMER_DISABLED = 0;
-const DO_SPLIT = false;
+const DO_SPLIT = "false";
 
 var doSplit = tools.argv(process.argv[3],DO_SPLIT);
 var timerInterval = tools.argv(process.argv[2],TIMER_DISABLED)*1;
