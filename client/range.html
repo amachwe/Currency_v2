@@ -1,0 +1,76 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>jQuery UI Datepicker - Default functionality</title>
+  <link rel="stylesheet" href="./lib/jquery-ui.css">
+  <script src="./lib/jquery-2.1.1.min.js"></script>
+  <script src="./lib/jquery-ui.js"></script>
+
+  <script>
+  const REMOTE = "http://192.168.0.29:3999";
+  const LOCAL = "http://localhost:3999";
+  var HOST = LOCAL;
+
+  var codeList =[];
+  var base = "";
+
+  function populateDropDown()
+  {
+      $.ajax({url:HOST+"/currency/list",type:"GET",success:processCurrencyList});
+      $('#endpoint').html("<b>Endpoint: "+HOST+"</b>");
+  }
+
+  function processCurrencyList(data,type,jqXHR)
+  {
+      currencyList = data;
+      for(var key in data)
+      {
+          codeList.push(key);
+          $("<option value=\""+key+"\">"+key+" "+data[key]+"</option>").appendTo("#base_currency");
+          $("#chart_div_"+key).remove();
+        }
+  }
+
+  $(function() {
+    $( "#startDate" ).datepicker();
+    $( "#endDate" ).datepicker();
+  });
+
+  function process()
+  {
+    var startDate = hGetDate("startDate");
+    var endDate = hGetDate("endDate");
+    if(startDate>=endDate)
+    {
+      alert("Error: Start date must be less than End date.");
+    }
+    else
+    {
+      base = $(base_currency).val();
+      $.ajax({url:HOST+"/currency/sequence/range/date/"+startDate+"/"+endDate+"/"+base,type:"GET",success:processRange});
+    }
+
+  }
+
+  function processRange(data,type,jqXHR)
+  {
+   var json = JSON.parse(data);
+   alert(json[0].StartTS.toString());
+  }
+
+  function hGetDate(id)
+  {
+    var date = $("#"+id ).datepicker("getDate").getTime();
+    return date!=null ? date*1 : 0*1;
+  }
+  </script>
+</head>
+<body style="font-family:verdana" onload="populateDropDown()">
+  <span id="endpoint" style="font-family:verdana;font-size:small"></span></span><span style="padding-left:15px;font-family:verdana;font-size:small">Base Currency:</span><select id="base_currency"></select>
+<span style="margin-left:5px">Start Date: <input type="text" id="startDate"></input></span>
+<span style="margin-left:5px">End Date: <input type="text" id="endDate"></input></span>
+<span style="margin-left:5px"><input type="button" onclick="process()" value="Process" id="process"></input></span>
+
+
+</body>
+</html>

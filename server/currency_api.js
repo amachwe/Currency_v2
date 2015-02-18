@@ -179,10 +179,11 @@ function getAnalysisStream(type,response)
 
 function getRangeDateStream(startDate,endDate,code,response)
 {
-  var startTs = new Date(startDate).getTime();
-  var endTs = new Date(endDate).getTime();
+  var startTs = startDate;
+  var endTs = endDate;
 
-  response.write("Start TS: "+startTs+"   End TS: "+endTs+"  Code: "+code);
+  var data = [];
+  data.push({StartTS:startTs, EndTS: endTs,  Code: code});
 
   var count = 0;
   mongoClient.connect(MONGO_DB_URL,function(err,db)
@@ -195,12 +196,12 @@ function getRangeDateStream(startDate,endDate,code,response)
       var stream = coll.find({ $and : [
         {_id :
           {$gte :
-             startTs
+             startTs*1
           }
         }, {
           _id :
           {$lte :
-             endTs
+             endTs*1
 
           }
         }]}).stream();
@@ -210,17 +211,19 @@ function getRangeDateStream(startDate,endDate,code,response)
         {
           db.close();
           steam = null;
-          response.write(" Result size: "+count);
+          data.push({Result_size:count});
+          response.write(JSON.stringify(data));
           response.end();
           return;
         }
         count++;
-        response.write("\n"+count+ " > "+item._id);
+        data.push(item);
 
       }).on('end',function()
       {
         db.close();
-        response.write(" Result size: "+count);
+        data.push({Result_size:count});
+        response.write(JSON.stringify(data));
         response.end();
 
       });
