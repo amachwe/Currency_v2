@@ -40,9 +40,9 @@ var Server = MongoDB.Server;
 var mongoClient = new MongoClient(new Server(mongoDbHost,mongoDbPort));
 
 console.log("DB Host: "+mongoDbHost+"\tCurr Db: "+currDbName+"\tDo Split: "+doSplit);
-    
 
- 
+var ee =new events.EventEmitter();
+
 
 
 function Drop(_db) {
@@ -51,23 +51,23 @@ function Drop(_db) {
                         this.dropAllCurrencies = function (currencyList) {
                             var count = 0;
                             var self = this;
-                            
+
                             for(var i=0;i<currencyList.length;i++)
                             {
-                               
+
                                 self.db.dropCollection(currencyList[i],function(err,result)
                                                       {
                                                          hLogErr("DROP",err);
-                                                       
+
                                                         count++;
                                                         if (count == currencyList.length) {
                                                             console.log("Dropped all");
                                                             self.emit('dropped-all',count);
-                                                            
+
                                                         }
                                                       });
                             }
-                            
+
                         };
                     };
 Drop.prototype = Object.create(events.EventEmitter.prototype);
@@ -78,10 +78,10 @@ Drop.prototype = Object.create(events.EventEmitter.prototype);
 function hErr(err)
 {
     if (err) {
-        
+
         throw err;
     }
-            
+
 }
 
 
@@ -101,76 +101,39 @@ function hLogErr(category,err)
 function rawProcessor(err,raw)
 {
     if (doSplit=="true") {
-        
-    
+
+
     console.log("Processing started..");
     hErr(err);
     var rawDrop = new Drop(currDb);
     rawDrop.on('dropped-all', function()
                     {
-                        
-                         
-            
-                            
-            
+
+
+
+
+
                             hLogErr("RAW",err);
                             console.log("Split Collection dropped.");
-                            var stream = raw.find().stream();
-                            
-                        
-                            stream.on('data',
-                                    function(item)
-                                    {
-                                        
-                                        var rates = item["rates"];
-                                       
-                                        for (var from in rates) {
-                                            var doc = {};
-                                            doc._id = item._id;
-                                            
-                                            
-                                            
-                                                for(var to in rates)
-                                                {
-                                                    if (from!=to) {
-                                                        var value = rates[from]/rates[to];
-                                                        doc[to] = value;
-                                                        updateStats(from,to,value);
-                                                    }
-                                                }
-                                            
-                                            
-                                            currDb.collection(from).insert(doc,{safe:true}, function(err,result)
-                                                       {
-                                                            hLogErr(err);
-                                                            
-                                                            
-                                                       });
-                                         
-                                        }
-                                        
-                                        
-                                    }).on('end',function ()
-                                        {
-                                            
-                                            console.log("End Raw Table processing.");
-                                            writeStats();
-                                            
-                                        });
-                           
+                            ee.on('split-next', function(tracker)
+                            {
+                              writeSplit(raw,currList[tracker],tracker);
+                            });
+                            ee.emit('split-next',0);
+
                     }).dropAllCurrencies(currList);
-    
-   
-        
+
+
+
     }
     else
     {
         console.log("Skipping split, doing normalisation and aggregate.");
         var stream = currDb.collection(COLL_NAMES.stats).find().stream();
-        
+
         stream.on('data',function(data)
             {
-                       
+
                 var from = data._id.split("_")[1];
                 statsList[from] = {};
                 for(var to in data)
@@ -179,24 +142,97 @@ function rawProcessor(err,raw)
                         statsList[from][to] = data[to];
                     }
                 }
-                
+
             }).on('end', function(){
                         console.log("Start Normalising and Aggregation.");
                         normaliseAndAggregate();
             });
-        
+
     }
-    
+
+}
+
+
+function writeSplit(raw,from,tracker)
+{
+
+console.log(from);
+var stream = raw.find().each(
+
+        function(err,item)
+        {
+
+            if(err)
+            {
+              hLogErr('RAW',err);
+            }
+            if(item == null)
+            {
+              console.log("End Raw Table processing for",from);
+              tracker++;
+
+              if(tracker==currList.length)
+              {
+                writeStats();
+              }
+              else
+              {
+                ee.emit('split-next',tracker);
+              }
+            }
+            else
+            {
+              var rates = item["rates"];
+
+
+              {
+                  var doc = {};
+                  doc._id = item._id;
+
+
+
+                      for(var to in rates)
+                      {
+                          if (from!=to) {
+                              var value = rates[from]/rates[to];
+                              doc[to] = value;
+                              updateStats(from,to,value);
+                          }
+                      }
+
+
+                  currDb.collection(from).insert(doc,{safe:true}, function(err,result)
+                             {
+                                  hLogErr(err);
+
+
+                             });
+
+              }
+            }
+
+        });
 }
 
 
 
-
-
-       
 function updateStats(from,to,value)
 {
-    var statsDoc = statsList[from][to];
+  if(statsList[from] == null)
+  {
+    statsList[from] = {};
+  }
+  var statsDoc = statsList[from][to];
+  if(statsDoc == null)
+  {
+    statsDoc = {};
+    statsDoc.count = 0;
+    statsDoc.sum = 0;
+    statsDoc.avg = 0;
+    statsDoc.max = 0;
+    statsDoc.min = null;
+  }
+
     statsDoc.count = statsDoc.count+1;
     statsDoc.sum = statsDoc.sum+value;
     statsDoc.avg = statsDoc.sum*1/statsDoc.count;
@@ -206,23 +242,23 @@ function updateStats(from,to,value)
     if (value < statsDoc.min){
         statsDoc.min = value;
     }
-    
+
     statsDoc.range = statsDoc.max - statsDoc.min;
     statsList[from][to] = statsDoc;
 }
 
 function writeStat(completed, key, statsDoc)
-{   
+{
     currDb.collection(COLL_NAMES.stats).insert(statsDoc,{safe:true},function(err,result)
                                                                           {
                                                                             hLogErr("STATS",err);
                                                                             completed.push(1);;
-                                                                            
+
                                                                             if (completed.length == currList.length) {
                                                                                 console.log("Stats done...");
                                                                                 normaliseAndAggregate();
                                                                             }
-                                                                           
+
                                                                           });
 }
 function writeStats()
@@ -237,11 +273,11 @@ function writeStats()
                                         for(var key in statsList)
                                         {  var statsDoc = statsList[key];
                                             statsDoc._id = "STATS_"+key;
-                                            
-                                           writeStat(completed, key,statsDoc);     
+
+                                           writeStat(completed, key,statsDoc);
                                         }
                                         }).dropAllCurrencies([COLL_NAMES.stats]);
-                             
+
 
 }
 
@@ -256,16 +292,16 @@ function normaliseAndAggregate()
     var activeTokens=[];
     var list = [];
     var batchCount = 0;
- 
+
     for(var i=0;i<currList.length;i++)
     {
         list.push(currList[i]);
         if (list.length>=batchSize) {
             batchCount++;
             activeTokens.push(batchCount);
-            
+
             var cp = fork("./normaliseAndAggregate",[JSON.stringify(list),MONGO_DB_HOST,MONGO_DB_PORT,CURR_DB_NAME,batchCount]);
-            
+
             cp.send(statsList);
 
             cp.on('exit', function()
@@ -278,16 +314,16 @@ function normaliseAndAggregate()
                   });
             list = [];
         }
-        
+
     }
-    
+
       if (list.length> 0) {
             batchCount++;
             console.log(batchCount,list);
             activeTokens.push(batchCount);
-            
+
             var cp = fork("./normaliseAndAggregate",[JSON.stringify(list),MONGO_DB_HOST,MONGO_DB_PORT,CURR_DB_NAME,batchCount]);
-            
+
             cp.send(statsList);
 
             cp.on('exit', function()
@@ -295,13 +331,13 @@ function normaliseAndAggregate()
                     activeTokens.pop();
                     if (activeTokens.length == 0) {
                         console.log("Finished","\nTotal Time taken (min): ",((new Date()).getTime()-START_TIME)/60000);
-                                                                  
-                       
+
+
                         process.exit();
                     }
                   });
         }
-    
+
 }
 var currDb = null;
 
@@ -309,15 +345,11 @@ console.log((new Date())+"  Bulk Resync started.. obtaining database links");
 
 mongoClient.open(function(err,client)
                  {
-                    
+
                     hErr(err);
                     currDb = client.db(currDbName);
-                 
+
                     console.log("Links obtained.");
-                    
+
                     currDb.collection(COLL_NAMES.raw,rawProcessor);
                  });
-
-
-
-

@@ -107,6 +107,7 @@ function updateStats(from,to,value)
       var statsDoc = statsList[from][to];
       if(statsDoc == null)
       {
+        statsDoc = {};
         statsDoc.count = 0;
         statsDoc.sum = 0;
         statsDoc.avg = 0;
