@@ -6,57 +6,57 @@ module.exports = new function()
     {
       return currency_list;
     };
-  
+
     this.getCurrencyCodeList= function ()
     {
-      
+
         var codeList = [];
         for(var key in currency_list)
         {
           codeList.push(key);
         }
-        
+
         return codeList;
-      
+
     };
-    
+
      this.getStatsCodeList= function ()
     {
-      
+
         var codeList = [];
         for(var key in currency_list)
         {
           codeList.push("STATS_"+key);
         }
-        
+
         return codeList;
-      
+
     };
-    
+
     this.getNormCodeList = function ()
     {
-      
+
         var codeList = [];
         for(var key in currency_list)
         {
           codeList.push("NORM_"+key);
         }
-        
-        return codeList;
-      
-    };
-  
 
-  
+        return codeList;
+
+    };
+
+
+
     this.getCollectionNames = function()
     {
       return {
         raw : "Raw",
 	stats : "Stats"
-	
+
       };
     };
-  
+
     this.generateStatsList = function (currList)
     {
         var statsList = {};
@@ -64,20 +64,20 @@ module.exports = new function()
         {
             var curr=currList[i];
             statsList[curr] = {};
-            
+
             for(var j=0;j<currList.length;j++)
             {
                 if (i!=j) {
                     statsList[curr][currList[j]]={count:0,sum:0,max:0,min:1000000,avg:0};
                 }
             }
-        
+
         }
-        
+
         return statsList;
-    
+
     };
-    
+
 
 }
 
@@ -122,6 +122,7 @@ const currency_list={
 	"CNY": "Chinese Yuan",
 	"COP": "Colombian Peso",
 	"CRC": "Costa Rican Colón",
+  "CUC": "Cuban Convertible Peso",
 	"CUP": "Cuban Peso",
 	"CVE": "Cape Verdean Escudo",
 	"CZK": "Czech Republic Koruna",

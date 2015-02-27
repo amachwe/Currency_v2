@@ -1,7 +1,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>jQuery UI Datepicker - Default functionality</title>
+  <title>Date Range Analysis</title>
   <link rel="stylesheet" href="./lib/jquery-ui.css">
   <script src="./lib/jquery-2.1.1.min.js"></script>
   <script src="./lib/jquery-ui.js"></script>
@@ -54,8 +54,59 @@
 
   function processRange(data,type,jqXHR)
   {
+   var stats = {};
    var json = JSON.parse(data);
-   alert(json[0].StartTS.toString());
+   var metaData = {};
+   metaData.header = json[0];
+   metaData.footer = json[json.length-1];
+
+   for(var i=1;i<json.length-1;i++)
+   {
+     var currList = json[i];
+
+     for(var key in currList)
+     {
+       if(key == "_id")
+       {
+        if(i==1)
+        {
+          stats[startDate] = new Date(currList[key]);
+        }
+        else if(i==json.length-1)
+        {
+          stats[endDate] = new Date(currList[key]);
+        }
+       }
+       else
+       {
+         var changed = false;
+
+         if(stats[key] == null)
+         {
+           stats[key] = {};
+         }
+         if(stats[key].max==null || stats[key].max < currList[key])
+         {
+           stats[key].max = currList[key];
+           changed = true;
+         }
+
+         if(stats[key].min==null || stats[key].min > currList[key])
+         {
+           stats[key].min = currList[key];
+           changed = true;
+         }
+
+         if(changed)
+         {
+           stats[key].pchange = (stats[key].max - stats[key].min)*100/stats[key].min;
+           stats[key].range = (stats[key].max - stats[key].min);
+         }
+       }
+     }
+   }
+   var htmlOut = "<b> Start Date: </b>"+stats[startDate]+ "   <b> End Date: </b>"+stats[endDate]+"</br>";
+   $("#dataOut").html(htmlOut);
   }
 
   function hGetDate(id)
@@ -70,7 +121,7 @@
 <span style="margin-left:5px">Start Date: <input type="text" id="startDate"></input></span>
 <span style="margin-left:5px">End Date: <input type="text" id="endDate"></input></span>
 <span style="margin-left:5px"><input type="button" onclick="process()" value="Process" id="process"></input></span>
-
+<div id="dataOut"></div>
 
 </body>
 </html>
