@@ -93,7 +93,7 @@ process.on('message', function(msg)
         var sum = 0;
         var avg = 0;
         var count = 0;
-
+        var allNaN = true;
         for(var to in rates)
         {
 
@@ -102,8 +102,13 @@ process.on('message', function(msg)
 
             if (statsDoc[to].max != statsDoc[to].min) {
 
+
               var value = rates[from]/rates[to];
-              normDoc[to]=(value-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
+              if(!isNaN(value))
+              {
+                allNaN = false;
+                normDoc[to]=(value-statsDoc[to].min)/(statsDoc[to].max-statsDoc[to].min);
+              }
             }
             else
             {
@@ -138,17 +143,13 @@ process.on('message', function(msg)
         normDoc["_sqrSum"] = sqrSum;
 
 
-
-
-        currDb.collection(collName).insert(normDoc,{safe:true}, function(err,result)
+        if(!allNaN)
         {
-
-
-          hErr(err);
-
-
-
-        });
+          currDb.collection(collName).insert(normDoc,{safe:true}, function(err,result)
+          {
+            hErr(err);
+          });
+        }
 
 
 
