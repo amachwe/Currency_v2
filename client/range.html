@@ -5,14 +5,23 @@
   <link rel="stylesheet" href="./lib/jquery-ui.css">
   <script src="./lib/jquery-2.1.1.min.js"></script>
   <script src="./lib/jquery-ui.js"></script>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 
   <script>
+  google.load("visualization", "1", {packages:["corechart"]});
   const REMOTE = "http://192.168.0.29:3999";
   const LOCAL = "http://localhost:3999";
   var HOST = LOCAL;
 
-  var codeList =[];
+
+  var codeList=[];
+  var to = "";
   var base = "";
+  const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
+  var popularOnly = false;
+  var dataSet = null;
+  var startDate = null;
+  var endDate = null;
 
   function populateDropDown()
   {
@@ -22,7 +31,7 @@
 
   function processCurrencyList(data,type,jqXHR)
   {
-      currencyList = data;
+
       for(var key in data)
       {
           codeList.push(key);
@@ -52,13 +61,67 @@
 
   }
 
+  function getSpecific()
+  {
+
+    $.ajax({url:HOST+"/currency/sequence/specific/"+base+"/"+to,type:"GET",success:processSpecificSequence});
+  }
+
+
+
+  function processSpecificSequence(data,type,jqXHR)
+  {
+
+   $('#specific_div').html("");
+   var dataGrid = JSON.parse(data);
+
+
+
+   var specific = google.visualization.arrayToDataTable(dataGrid);
+
+   var options = {
+     title: 'Currency Trend: '+base+" vs "+to,
+     hAxis: {title: dataGrid[0][0], titleFontSize: 10},
+     vAxis: {title: dataGrid[0][1], titleFontSize: 10},
+     legend: {position:"right"},
+     pointSize: 1
+   };
+
+
+   var chart = (new google.visualization.ScatterChart(document.getElementById('specific_div')));
+   chart.draw(specific, options);
+
+
+  }
+
+
+
+
   function processRange(data,type,jqXHR)
   {
+   popularOnly = getOptions().popular;
+
    var stats = {};
    var json = JSON.parse(data);
+   if(json.length == 2)
+   {
+     alert("No results found for the date range.");
+     var htmlOut = "No results found";
+     $("#dataOut").html(htmlOut);
+     return;
+   }
+
    var metaData = {};
    metaData.header = json[0];
    metaData.footer = json[json.length-1];
+
+
+   startDate = new Date(json[1]._id*1);
+
+
+   endDate = new Date(json[json.length-2]._id*1);
+
+
 
    for(var i=1;i<json.length-1;i++)
    {
@@ -66,18 +129,7 @@
 
      for(var key in currList)
      {
-       if(key == "_id")
-       {
-        if(i==1)
-        {
-          stats[startDate] = new Date(currList[key]);
-        }
-        else if(i==json.length-1)
-        {
-          stats[endDate] = new Date(currList[key]);
-        }
-       }
-       else
+       if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
        {
          var changed = false;
 
@@ -99,13 +151,46 @@
 
          if(changed)
          {
-           stats[key].pchange = (stats[key].max - stats[key].min)*100/stats[key].min;
+           stats[key].per_swing = (stats[key].max - stats[key].min)*100/stats[key].min;
            stats[key].range = (stats[key].max - stats[key].min);
          }
        }
      }
+
    }
-   var htmlOut = "<b> Start Date: </b>"+stats[startDate]+ "   <b> End Date: </b>"+stats[endDate]+"</br>";
+
+   var dataGrid = [['Currency','Percentage Swing']];
+   for(var key in stats)
+   {
+
+     dataGrid.push([key,stats[key].per_swing]);
+   }
+
+   dataSet = google.visualization.arrayToDataTable(dataGrid);
+
+   var options = {
+     title: 'Currency Trend: '+base+" Percentage Swing",
+     hAxis: {title: 'Other Currencies', titleFontSize: 10},
+     vAxis: {title: "% Swing", titleFontSize: 10},
+     legend: {position:"right"},
+     pointSize: 1
+   };
+
+
+   var chart = (new google.visualization.ColumnChart(document.getElementById('chart_div')));
+   chart.draw(dataSet, options);
+   google.visualization.events.addListener(chart,'select',function(e)
+   {
+     var sel = chart.getSelection();
+     if(sel!=null && sel.length > 0)
+     {
+        to = dataSet.getValue(sel[0].row,0);
+
+        getSpecific();
+     }
+   });
+   var htmlOut = "<b>Data Start Date: </b>"+startDate+ "     <b>Data End Date: </b>"+endDate+"</br>";
+
    $("#dataOut").html(htmlOut);
   }
 
@@ -114,14 +199,26 @@
     var date = $("#"+id ).datepicker("getDate").getTime();
     return date!=null ? date*1 : 0*1;
   }
+
+  function getOptions()
+  {
+      var options = {};
+
+      options.popular = $(chxPopular).prop("checked") ? true : false;
+
+
+      return options;
+  }
   </script>
 </head>
 <body style="font-family:verdana" onload="populateDropDown()">
   <span id="endpoint" style="font-family:verdana;font-size:small"></span></span><span style="padding-left:15px;font-family:verdana;font-size:small">Base Currency:</span><select id="base_currency"></select>
 <span style="margin-left:5px">Start Date: <input type="text" id="startDate"></input></span>
 <span style="margin-left:5px">End Date: <input type="text" id="endDate"></input></span>
-<span style="margin-left:5px"><input type="button" onclick="process()" value="Process" id="process"></input></span>
-<div id="dataOut"></div>
+<span style="margin-left:5px"><input type="button" onclick="process()" value="Process" id="process"></input><input style="margin-left:20px" type="checkbox" id="chxPopular"><span style="padding:2px;font-family:verdana;font-size:small;">Popular Only</span></input></span>
+<div id="dataOut" style="font-size:x-small;margin:5px"></div>
+<div id="chart_div" style="height: 400px; width: 1400px"></div><br>
+<div id="specific_div" style="height: 400px; width: 1400px"></div>
 
 </body>
 </html>

@@ -41,6 +41,18 @@ app.get("/currency/sequence/:code", function(request,response)
        });
 
 /*
+Specific Sequence Stream
+*/
+app.get("/currency/sequence/specific/:code/:to", function(request,response)
+        {
+          response.header("Access-Control-Allow-Origin", "*");
+          response.header("Access-Control-Allow-Headers", "X-Requested-With");
+
+          getCurrencyStreamSpecific(request.params.code,request.params.to, response);
+
+        });
+
+/*
 Sequence Normalised Stream
 */
 app.get("/currency/sequence/normalised/:code", function(request,response)
@@ -99,7 +111,70 @@ var JSONStream = require('JSONStream');
 const currency_list = combine.getCurrencyList();
 const MONGO_DB_URL="mongodb://localhost:27017/Currency_v2";
 
+function getCurrencyStreamSpecific(code,to,response)
+{
 
+  if(currency_list[code]!=null)
+   {
+     mongoClient.connect(MONGO_DB_URL, function(err,db)
+                   {
+                     if(err) throw err;
+
+
+                         db.collection(code, function(err,coll)
+                                  {
+
+
+                                    if(err) throw err;
+                                    
+                                    response.write("[[\"TimeStamp\",\""+to+"\"]");
+                                    coll.find().each(
+                                      function(err,item)
+                                      {
+                                        if(err)
+                                        {
+                                          response.write(err);
+                                          response.end();
+                                        }
+                                        if(item==null)
+                                        {
+                                          response.write("]");
+                                          response.end();
+                                        }
+                                        if(item!=null)
+                                        {
+                                          var value = 0;
+                                          var id = item["_id"];
+                                          for(var key in item)
+                                          {
+                                              if(key==to)
+                                              {
+                                                value = item[key];
+                                                break;
+                                              }
+                                          }
+                                          response.write(",")
+                                          response.write(JSON.stringify([id,value]));
+
+                                        }
+
+                                      }
+                                    );
+
+
+                                  });
+
+
+                   });
+    }
+   else
+    {
+
+       response.send("Currency code not found: "+code+"");
+       response.end();
+
+    }
+}
 function getCurrencyStream(code,response,normalised)
 {
 
@@ -133,6 +208,7 @@ function getCurrencyStream(code,response,normalised)
         {
 
            response.send("Currency code not found: "+code+"");
+           response.end();
 
         }
 }
@@ -179,8 +255,8 @@ function getAnalysisStream(type,response)
 
 function getRangeDateStream(startDate,endDate,code,response)
 {
-  var startTs = startDate;
-  var endTs = endDate;
+  var startTs = startDate*1;
+  var endTs = endDate*1;
 
   var data = [];
   data.push({StartTS:startTs, EndTS: endTs,  Code: code});
@@ -193,20 +269,30 @@ function getRangeDateStream(startDate,endDate,code,response)
     db.collection(code,function(err,coll)
     {
       if(err) throw err;
-      var stream = coll.find({ $and : [
+
+      coll.find({ $and : [
         {_id :
           {$gte :
-             startTs*1
+             startTs
           }
         }, {
           _id :
           {$lte :
-             endTs*1
+             endTs
 
           }
-        }]}).stream();
-      stream.on('data', function(item)
+        }]}).each(function(err,item)
       {
+
+        if(err) throw err;
+        if(item == null)
+        {
+          db.close();
+          data.push({Result_size:count});
+          response.write(JSON.stringify(data));
+          response.end();
+          return;
+        }
         if(item._id >= endTs)
         {
           db.close();
@@ -218,13 +304,6 @@ function getRangeDateStream(startDate,endDate,code,response)
         }
         count++;
         data.push(item);
-
-      }).on('end',function()
-      {
-        db.close();
-        data.push({Result_size:count});
-        response.write(JSON.stringify(data));
-        response.end();
 
       });
     });
