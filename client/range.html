@@ -11,7 +11,7 @@
   google.load("visualization", "1", {packages:["corechart"]});
   const REMOTE = "http://192.168.0.29:3999";
   const LOCAL = "http://localhost:3999";
-  var HOST = LOCAL;
+  var HOST = REMOTE;
 
 
   var codeList=[];
@@ -56,6 +56,7 @@
     else
     {
       base = $(base_currency).val();
+      $('#specific_div').html("");
       $.ajax({url:HOST+"/currency/sequence/range/date/"+startDate+"/"+endDate+"/"+base,type:"GET",success:processRange});
     }
 
