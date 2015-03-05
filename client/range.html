@@ -63,8 +63,16 @@
 
   function getSpecific()
   {
-
-    $.ajax({url:HOST+"/currency/sequence/specific/"+base+"/"+to,type:"GET",success:processSpecificSequence});
+    var startTs = startDate.getTime();
+    var endTs = endDate.getTime();
+    if(startTs>=endTs)
+    {
+      alert("Error: Start date must be less than End date.");
+    }
+    else
+    {
+      $.ajax({url:HOST+"/currency/sequence/specific/"+base+"/"+to+"/range/"+startTs+"/"+endTs+"/",type:"GET",success:processSpecificSequence});
+    }
   }
 
 
@@ -189,7 +197,7 @@
         getSpecific();
      }
    });
-   var htmlOut = "<b>Data Start Date: </b>"+startDate+ "     <b>Data End Date: </b>"+endDate+"</br>";
+   var htmlOut = "<b>Data Start Date: </b>"+startDate+ "["+startDate.getTime()+"]     <b>Data End Date: </b>"+endDate+"["+endDate.getTime()+"]</br>";
 
    $("#dataOut").html(htmlOut);
   }

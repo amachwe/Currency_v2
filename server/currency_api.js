@@ -41,14 +41,26 @@ app.get("/currency/sequence/:code", function(request,response)
        });
 
 /*
-Specific Sequence Stream
+Specific Range Sequence Stream
 */
-app.get("/currency/sequence/specific/:code/:to", function(request,response)
+app.get("/currency/sequence/specific/:code/:to/range/:startDate/:endDate", function(request,response)
         {
           response.header("Access-Control-Allow-Origin", "*");
           response.header("Access-Control-Allow-Headers", "X-Requested-With");
 
-          getCurrencyStreamSpecific(request.params.code,request.params.to, response);
+          getSpecificRangeDateStream(request.params.startDate,request.params.endDate,request.params.code,request.params.to,response);
+
+        });
+
+/*
+Specific Sequence Stream
+*/
+app.get("/currency/sequence/specific/:code/:to", function(request,response)
+        {
+            response.header("Access-Control-Allow-Origin", "*");
+            response.header("Access-Control-Allow-Headers", "X-Requested-With");
+
+            getCurrencyStreamSpecific(request.params.code,request.params.to, response);
 
         });
 
@@ -101,6 +113,7 @@ app.get("/currency/sequence/range/date/:startDate/:endDate/:code", function(requ
 app.listen(PORT);
 console.log("Currency API Active on port: "+PORT);
 
+
 /*
 Implementation
 */
@@ -110,6 +123,81 @@ var JSONStream = require('JSONStream');
 
 const currency_list = combine.getCurrencyList();
 const MONGO_DB_URL="mongodb://localhost:27017/Currency_v2";
+
+function getSpecificRangeDateStream(startDate,endDate,code,to,response)
+{
+  if(currency_list[code]!=null)
+   {
+     mongoClient.connect(MONGO_DB_URL, function(err,db)
+                   {
+                     if(err) throw err;
+
+
+                         db.collection(code, function(err,coll)
+                                  {
+
+
+                                    if(err) throw err;
+
+                                    response.write("[[\"TimeStamp\",\""+to+"\"]");
+                                    coll.find({ $and : [
+                                      {_id :
+                                        {$gte :
+                                           startDate*1
+                                        }
+                                      }, {
+                                        _id :
+                                        {$lte :
+                                           endDate*1
+
+                                        }
+                                      }]}).each(
+                                      function(err,item)
+                                      {
+                                        if(err)
+                                        {
+                                          response.write(err);
+                                          response.end();
+                                        }
+                                        if(item==null)
+                                        {
+                                          response.write("]");
+                                          response.end();
+                                        }
+                                        if(item!=null)
+                                        {
+                                          var value = 0;
+                                          var id = item["_id"];
+                                          for(var key in item)
+                                          {
+                                              if(key==to)
+                                              {
+                                                value = item[key];
+                                                break;
+                                              }
+                                          }
+                                          response.write(",")
+                                          response.write(JSON.stringify([id,value]));
+
+                                        }
+
+                                      }
+                                    );
+
+
+                                  });
+
+
+                   });
+    }
+   else
+    {
+
+       response.send("Currency code not found: "+code+"");
+       response.end();
+
+    }
+}
 
 function getCurrencyStreamSpecific(code,to,response)
 {
@@ -126,7 +214,7 @@ function getCurrencyStreamSpecific(code,to,response)
 
 
                                     if(err) throw err;
-                                    
+
                                     response.write("[[\"TimeStamp\",\""+to+"\"]");
                                     coll.find().each(
                                       function(err,item)
