@@ -1,0 +1,233 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Date Range Analysis</title>
+  <link rel="stylesheet" href="./lib/jquery-ui.css">
+  <script src="./lib/jquery-2.1.1.min.js"></script>
+  <script src="./lib/jquery-ui.js"></script>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+  <script>
+  google.load("visualization", "1", {packages:["corechart"]});
+  const REMOTE = "http://192.168.0.29:3999";
+  const LOCAL = "http://localhost:3999";
+  var HOST = REMOTE;
+
+
+  var codeList=[];
+  var to = "";
+  var base = "";
+  const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
+  var popularOnly = false;
+  var dataSet = null;
+  var startDate = null;
+  var endDate = null;
+
+  function populateDropDown()
+  {
+      $.ajax({url:HOST+"/currency/list",type:"GET",success:processCurrencyList});
+      $('#endpoint').html("<b>Endpoint: "+HOST+"</b>");
+  }
+
+  function processCurrencyList(data,type,jqXHR)
+  {
+
+      for(var key in data)
+      {
+          codeList.push(key);
+          $("<option value=\""+key+"\">"+key+" "+data[key]+"</option>").appendTo("#base_currency");
+          $("#chart_div_"+key).remove();
+        }
+  }
+
+  $(function() {
+    $( "#startDate" ).datepicker();
+    $( "#endDate" ).datepicker();
+  });
+
+  function process()
+  {
+    var startDate = hGetDate("startDate");
+    var endDate = hGetDate("endDate");
+    if(startDate>=endDate)
+    {
+      alert("Error: Start date must be less than End date.");
+    }
+    else
+    {
+      base = $(base_currency).val();
+      $('#specific_div').html("");
+      $.ajax({url:HOST+"/currency/sequence/range/date/"+startDate+"/"+endDate+"/"+base,type:"GET",success:processRange});
+    }
+
+  }
+
+  function getSpecific()
+  {
+    var startTs = startDate.getTime();
+    var endTs = endDate.getTime();
+    if(startTs>=endTs)
+    {
+      alert("Error: Start date must be less than End date.");
+    }
+    else
+    {
+      $.ajax({url:HOST+"/currency/sequence/specific/"+base+"/"+to+"/range/"+startTs+"/"+endTs+"/",type:"GET",success:processSpecificSequence});
+    }
+  }
+
+
+
+  function processSpecificSequence(data,type,jqXHR)
+  {
+
+   $('#specific_div').html("");
+   var dataGrid = JSON.parse(data);
+
+
+
+   var specific = google.visualization.arrayToDataTable(dataGrid);
+
+   var options = {
+     title: 'Currency Trend: '+base+" vs "+to,
+     hAxis: {title: dataGrid[0][0], titleFontSize: 10},
+     vAxis: {title: dataGrid[0][1], titleFontSize: 10},
+     legend: {position:"right"},
+     pointSize: 1
+   };
+
+
+   var chart = (new google.visualization.ScatterChart(document.getElementById('specific_div')));
+   chart.draw(specific, options);
+
+
+  }
+
+
+
+
+  function processRange(data,type,jqXHR)
+  {
+   popularOnly = getOptions().popular;
+
+   var stats = {};
+   var json = JSON.parse(data);
+   if(json.length == 2)
+   {
+     alert("No results found for the date range.");
+     var htmlOut = "No results found";
+     $("#dataOut").html(htmlOut);
+     return;
+   }
+
+   var metaData = {};
+   metaData.header = json[0];
+   metaData.footer = json[json.length-1];
+
+
+   startDate = new Date(json[1]._id*1);
+
+
+   endDate = new Date(json[json.length-2]._id*1);
+
+
+
+   for(var i=1;i<json.length-1;i++)
+   {
+     var currList = json[i];
+
+     for(var key in currList)
+     {
+       if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
+       {
+         var changed = false;
+
+         if(stats[key] == null)
+         {
+           stats[key] = {};
+         }
+         if(stats[key].max==null || stats[key].max < currList[key])
+         {
+           stats[key].max = currList[key];
+           changed = true;
+         }
+
+         if(stats[key].min==null || stats[key].min > currList[key])
+         {
+           stats[key].min = currList[key];
+           changed = true;
+         }
+
+         if(changed)
+         {
+           stats[key].per_swing = (stats[key].max - stats[key].min)*100/stats[key].min;
+           stats[key].range = (stats[key].max - stats[key].min);
+         }
+       }
+     }
+
+   }
+
+   var dataGrid = [['Currency','Percentage Swing']];
+   for(var key in stats)
+   {
+
+     dataGrid.push([key,stats[key].per_swing]);
+   }
+
+   dataSet = google.visualization.arrayToDataTable(dataGrid);
+
+   var options = {
+     title: 'Currency Trend: '+base+" Percentage Swing",
+     hAxis: {title: 'Other Currencies', titleFontSize: 10},
+     vAxis: {title: "% Swing", titleFontSize: 10},
+     legend: {position:"right"},
+     pointSize: 1
+   };
+
+
+   var chart = (new google.visualization.ColumnChart(document.getElementById('chart_div')));
+   chart.draw(dataSet, options);
+   google.visualization.events.addListener(chart,'select',function(e)
+   {
+     var sel = chart.getSelection();
+     if(sel!=null && sel.length > 0)
+     {
+        to = dataSet.getValue(sel[0].row,0);
+
+        getSpecific();
+     }
+   });
+   var htmlOut = "<b>Data Start Date: </b>"+startDate+ "["+startDate.getTime()+"]     <b>Data End Date: </b>"+endDate+"["+endDate.getTime()+"]</br>";
+
+   $("#dataOut").html(htmlOut);
+  }
+
+  function hGetDate(id)
+  {
+    var date = $("#"+id ).datepicker("getDate").getTime();
+    return date!=null ? date*1 : 0*1;
+  }
+
+  function getOptions()
+  {
+      var options = {};
+
+      options.popular = $(chxPopular).prop("checked") ? true : false;
+
+
+      return options;
+  }
+  </script>
+</head>
+<body style="font-family:verdana" onload="populateDropDown()">
+  <span id="endpoint" style="font-family:verdana;font-size:small"></span></span><span style="padding-left:15px;font-family:verdana;font-size:small">Base Currency:</span><select id="base_currency"></select>
+<span style="margin-left:5px">Start Date: <input type="text" id="startDate"></input></span>
+<span style="margin-left:5px">End Date: <input type="text" id="endDate"></input></span>
+<span style="margin-left:5px"><input type="button" onclick="process()" value="Process" id="process"></input><input style="margin-left:20px" type="checkbox" id="chxPopular"><span style="padding:2px;font-family:verdana;font-size:small;">Popular Only</span></input></span>
+<div id="dataOut" style="font-size:x-small;margin:5px"></div>
+<div id="chart_div" style="height: 400px; width: 1400px"></div><br>
+<div id="specific_div" style="height: 400px; width: 1400px"></div>
+
+</body>
+</html>
