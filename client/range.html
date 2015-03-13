@@ -11,7 +11,7 @@
   google.load("visualization", "1", {packages:["corechart"]});
   const REMOTE = "http://192.168.0.29:3999";
   const LOCAL = "http://localhost:3999";
-  var HOST = REMOTE;
+  var HOST = LOCAL;
 
 
   var codeList=[];
@@ -25,8 +25,9 @@
 
   function populateDropDown()
   {
-      $.ajax({url:HOST+"/currency/list",type:"GET",success:processCurrencyList});
       $('#endpoint').html("<b>Endpoint: "+HOST+"</b>");
+      $.ajax({url:HOST+"/currency/list",type:"GET",success:processCurrencyList});
+
   }
 
   function processCurrencyList(data,type,jqXHR)
@@ -145,6 +146,9 @@
          if(stats[key] == null)
          {
            stats[key] = {};
+           stats[key].sum=0;
+           stats[key].count = 0;
+           stats[key].var = 0;
          }
          if(stats[key].max==null || stats[key].max < currList[key])
          {
@@ -163,8 +167,39 @@
            stats[key].per_swing = (stats[key].max - stats[key].min)*100/stats[key].min;
            stats[key].range = (stats[key].max - stats[key].min);
          }
+
+         stats[key].sum += currList[key];
+         stats[key].count += 1;
+         stats[key].avg = stats[key].sum*1/stats[key].count;
        }
      }
+
+     for(var i=1;i<json.length-1;i++)
+     {
+       var currList = json[i];
+
+       for(var key in currList)
+       {
+         if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
+         {
+
+           stats[key].var += (currList[key]-stats[key].avg)*(currList[key]-stats[key].avg)*1;
+
+
+         }
+       }
+     }
+
+       for(var key in currList)
+       {
+         if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
+         {
+
+           stats[key].stdev = Math.sqrt(stats[key].var/stats[key].count*1);
+
+
+         }
+       }
 
    }
 
@@ -172,7 +207,7 @@
    for(var key in stats)
    {
 
-     dataGrid.push([key,stats[key].per_swing]);
+     dataGrid.push([key,stats[key].stdev]);
    }
 
    dataSet = google.visualization.arrayToDataTable(dataGrid);
