@@ -22,6 +22,9 @@
   var dataSet = null;
   var startDate = null;
   var endDate = null;
+  var maxSwing = 0;
+  var minSwing = 1000000000;
+  var avgSwing = 0;
 
   function populateDropDown()
   {
@@ -139,8 +142,11 @@
 
      for(var key in currList)
      {
+
+
        if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
        {
+         var val = currList[key];
          var changed = false;
 
          if(stats[key] == null)
@@ -149,16 +155,21 @@
            stats[key].sum=0;
            stats[key].count = 0;
            stats[key].var = 0;
+
+
          }
-         if(stats[key].max==null || stats[key].max < currList[key])
+
+         if(stats[key].max==null || stats[key].max < val)
          {
-           stats[key].max = currList[key];
+
+           stats[key].max = val;
            changed = true;
          }
 
-         if(stats[key].min==null || stats[key].min > currList[key])
+         if(stats[key].min==null || stats[key].min > val)
          {
-           stats[key].min = currList[key];
+           stats[key].min = val;
+
            changed = true;
          }
 
@@ -166,24 +177,26 @@
          {
            stats[key].per_swing = (stats[key].max - stats[key].min)*100/stats[key].min;
            stats[key].range = (stats[key].max - stats[key].min);
+
          }
 
-         stats[key].sum += currList[key];
+         stats[key].sum += val;
          stats[key].count += 1;
          stats[key].avg = stats[key].sum*1/stats[key].count;
        }
      }
 
-     for(var i=1;i<json.length-1;i++)
+     for(var j=1;j<json.length-1;j++)
      {
-       var currList = json[i];
+       var currList = json[j];
 
        for(var key in currList)
        {
          if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
          {
 
-           stats[key].var += (currList[key]-stats[key].avg)*(currList[key]-stats[key].avg)*1;
+           var val = currList[key];
+           stats[key].var += (val-stats[key].avg)*(val-stats[key].avg)*1;
 
 
          }
@@ -207,7 +220,7 @@
    for(var key in stats)
    {
 
-     dataGrid.push([key,stats[key].stdev]);
+     dataGrid.push([key,stats[key].per_swing]);
    }
 
    dataSet = google.visualization.arrayToDataTable(dataGrid);
@@ -261,6 +274,7 @@
 <span style="margin-left:5px">End Date: <input type="text" id="endDate"></input></span>
 <span style="margin-left:5px"><input type="button" onclick="process()" value="Process" id="process"></input><input style="margin-left:20px" type="checkbox" id="chxPopular"><span style="padding:2px;font-family:verdana;font-size:small;">Popular Only</span></input></span>
 <div id="dataOut" style="font-size:x-small;margin:5px"></div>
+<div id="range" >
 <div id="chart_div" style="height: 400px; width: 1400px"></div><br>
 <div id="specific_div" style="height: 400px; width: 1400px"></div>
 
