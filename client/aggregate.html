@@ -5,15 +5,15 @@
     <title>Trend Visualization</title>
     <script type="text/javascript" src="./lib/jquery-2.1.1.min.js"></script>
     <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    
+
     <script type="text/javascript">
         const REMOTE = "http://192.168.0.29:3999";
         const LOCAL = "http://localhost:3999";
-        var HOST = REMOTE;
-        
-        
+        var HOST = LOCAL;
+
+
         google.load("visualization", "1", {packages:["corechart"]});
-        
+
         var codeList =[];
         var currencyList = null;
         function populateDropDown()
@@ -21,7 +21,7 @@
             $.ajax({url:HOST+"/currency/list",type:"GET",success:processCurrencyList});
             $('#endpoint').html("<b>Endpoint: "+HOST+"</b>");
         }
-        
+
         function processCurrencyList(data,type,jqXHR)
         {
             currencyList = data;
@@ -34,13 +34,13 @@
         }
         var base="";
         var measure = ["avg","stdev"];
-        const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
+        const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY","XAU","XAG"];
         var popularOnly = false;
         function getStream()
         {
             popularOnly = getOptions().popular;
             normalised = getOptions().normal;
-            
+
             base = $(base_currency).val();
             if (normalised!=null && normalised == true) {
                 $.ajax({url:HOST+"/currency/sequence/normalised/"+base,type:"GET",success:processSequence});
@@ -50,65 +50,65 @@
                 $.ajax({url:HOST+"/currency/sequence/"+base,type:"GET",success:processSequence});
             }
         }
-        
+
         function getAggStream()
         {
             popularOnly = getOptions().popular;
-            
+
             base = $(base_currency).val();
-            
+
             $.ajax({url:HOST+"/currency/sequence/aggregate/"+base,type:"GET",success:processAggCurrSequence});
-            
+
         }
-        
-        
-        
+
+
+
         function processAggCurrSequence(data,type,jqXHR)
         {
-            
-            
+
+
             var length = data.length;
             $("#count_view").html("Count: "+length);
             $("#mode_view").html("Popular Only: "+popularOnly);
-            
+
             var titleRow = ["Time"];
-            
+
             for(var j=0;j<codeList.length;j++)
             {
                 if (base!=codeList[j] && (popularOnly == false || $.inArray(codeList[j],popular)>=0)) {
-                 
+
                     titleRow.push(codeList[j]);
                 }
             }
-            
+
             titleRow.push("Avg");
-            
+
             var dataGrid=[titleRow];
             $("#chart_div_agg").remove();
             var output = "";
-            
-                
-                    
+
+
+
                     for(var i=0;i<length;i++)
                     {
                         var row=[data[i]._id*1];
                         var avg = data[i]._avg*1;
-                        
+
                         for(var j=0;j<codeList.length;j++)
                         {
                             if (base!=codeList[j] && (popularOnly == false || $.inArray(codeList[j],popular)>=0)) {
-                                
+
                                 row.push(data[i][codeList[j]]);
                             }
                         }
-                        
+
                         row.push(avg);
-                       
-                       dataGrid.push(row);   
+
+                       dataGrid.push(row);
                     }
-            
+
                     var dataSet = google.visualization.arrayToDataTable(dataGrid);
-    
+
                     var options = {
                       title: 'Currency Trend: '+currencyList[base]+' vs Normalised Aggregate',
                       hAxis: {title: 'Time', titleFontSize: 10},
@@ -118,20 +118,20 @@
                     };
 
                     $("<div style=\"height: 700px; width: 1600px;\"id=\"chart_div_agg\"></div>").appendTo("#chart_div");
-     
+
                     (new google.visualization.ScatterChart(document.getElementById('chart_div_agg'))).draw(dataSet, options);
-            
-                
-               
-            
+
+
+
+
         }
-        
+
         function processSequence(data,type,jqXHR)
         {
             var options = getOptions();
-            
+
             popularOnly = options.popular;
-            
+
             var length = data.length;
             $("#count_view").html("Count: "+length);
             $("#mode_view").html("Popular Only: "+popularOnly);
@@ -141,16 +141,16 @@
                 $("#chart_div_"+codeList[j]).remove();
                 var output = "";
                 if (base!=codeList[j] && (popularOnly == false || $.inArray(codeList[j],popular)>=0)) {
-                
+
                     for(var i=0;i<length;i++)
                     {
                        var currency = data[i];
-                       
-                       dataGrid.push([currency["_id"]*1,currency[codeList[j]]]);   
+
+                       dataGrid.push([currency["_id"]*1,currency[codeList[j]]]);
                     }
-            
+
                     var dataSet = google.visualization.arrayToDataTable(dataGrid);
-    
+
                     var options = {
                       title: 'Currency Trend: '+currencyList[base]+' vs '+currencyList[codeList[j]],
                       hAxis: {title: 'Time', titleFontSize: 10},
@@ -160,26 +160,26 @@
                     };
 
                     $("<div style=\"height: 100px; width: 1200px;\"id=\"chart_div_"+codeList[j]+"\"></div>").appendTo("#chart_div");
-     
+
                     (new google.visualization.ScatterChart(document.getElementById('chart_div_'+codeList[j]))).draw(dataSet, options);
                 }
-                
-               
+
+
             }
         }
-        
-        
+
+
         function getOptions()
         {
             var options = {};
-            
+
             options.popular = $(chxPopular).prop("checked") ? true : false;
             options.normal = $(chxNormal).prop("checked") ? true : false;
-            
+
             return options;
         }
     </script>
-   
+
 </head>
 <body id="body" onload="populateDropDown();">
     <span id="endpoint" style="font-family:verdana;font-size:small"></span></span><span style="padding-left:15px;font-family:verdana;font-size:small">Base Currency:</span><select id="base_currency"></select>
@@ -189,7 +189,7 @@
         <input  type="checkbox" id="chxNormal"><span style="padding:2px;font-family:verdana;font-size:small;">Normalised Data</span></input>
     </span><br>
     <span style="font-family:verdana;font-size:x-small;" ><span id="count_view"></span><span style="margin-left: 10px;" id="mode_view"></span></span>
-    
+
     <br>
     <div style="padding-top:10px" id="chart_div"></div>
 </body>

@@ -40,17 +40,6 @@ app.get("/currency/sequence/:code", function(request,response)
 
        });
 
-/*
-Specific Range Sequence Stream
-*/
-app.get("/currency/sequence/specific/:code/:to/range/:startDate/:endDate", function(request,response)
-        {
-          response.header("Access-Control-Allow-Origin", "*");
-          response.header("Access-Control-Allow-Headers", "X-Requested-With");
-
-          getSpecificRangeDateStream(request.params.startDate,request.params.endDate,request.params.code,request.params.to,response);
-
-        });
 
 /*
 Specific Sequence Stream
@@ -102,12 +91,25 @@ app.get("/currency/sequence/analysis/:type", function(request,response)
 /*
 Date Range Query
 */
-app.get("/currency/sequence/range/date/:startDate/:endDate/:code", function(request,response)
+app.get("/currency/sequence/:code/range/:startDate/:endDate/", function(request,response)
         {
           response.header("Access-Control-Allow-Origin", "*");
           response.header("Access-Control-Allow-Headers", "X-Requested-With");
 
           getRangeDateStream(request.params.startDate,request.params.endDate,request.params.code,response);
+        });
+
+
+/*
+Specific Range Sequence Stream
+*/
+app.get("/currency/sequence/specific/:code/:to/range/:startDate/:endDate", function(request,response)
+        {
+          response.header("Access-Control-Allow-Origin", "*");
+          response.header("Access-Control-Allow-Headers", "X-Requested-With");
+
+          getSpecificRangeDateStream(request.params.startDate,request.params.endDate,request.params.code,request.params.to,response);
+
         });
 
 app.listen(PORT);

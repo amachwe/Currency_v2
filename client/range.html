@@ -17,7 +17,7 @@
   var codeList=[];
   var to = "";
   var base = "";
-  const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY"];
+  const popular = ["USD","GBP","NGN","INR","CAD", "EUR", "AED", "SAR","CNY","XAU","XAG"];
   var popularOnly = false;
   var dataSet = null;
   var startDate = null;
@@ -58,7 +58,7 @@
     {
       base = $(base_currency).val();
       $('#specific_div').html("");
-      $.ajax({url:HOST+"/currency/sequence/range/date/"+startDate+"/"+endDate+"/"+base,type:"GET",success:processRange});
+      $.ajax({url:HOST+"/currency/sequence/"+base+"/range/"+startDate+"/"+endDate,type:"GET",success:processRange});
     }
 
   }
