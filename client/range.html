@@ -154,7 +154,7 @@
            stats[key] = {};
            stats[key].sum=0;
            stats[key].count = 0;
-           stats[key].var = 0;
+        
 
 
          }
@@ -186,33 +186,7 @@
        }
      }
 
-     for(var j=1;j<json.length-1;j++)
-     {
-       var currList = json[j];
 
-       for(var key in currList)
-       {
-         if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
-         {
-
-           var val = currList[key];
-           stats[key].var += (val-stats[key].avg)*(val-stats[key].avg)*1;
-
-
-         }
-       }
-     }
-
-       for(var key in currList)
-       {
-         if(key!="_id" && (popularOnly == false || $.inArray(key,popular)>=0))
-         {
-
-           stats[key].stdev = Math.sqrt(stats[key].var/stats[key].count*1);
-
-
-         }
-       }
 
    }
 
